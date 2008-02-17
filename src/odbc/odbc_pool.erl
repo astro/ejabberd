@@ -15,9 +15,13 @@ start_link() ->
     end,
     supervisor:start_link({local, ?MODULE}, ?MODULE, [10, {DBHost, DBPort, DBName, DBUser, DBPass}]).
 
+%% Use a random connection from the pool to answer Query.
 sql_query(Query) ->
     gen_server:call(random_conn(), {sql_query, Query}).
 
+%% Use a random connection from the pool to issue the
+%% transaction. Transaction may be a list of queries or a single
+%% function of one argument (the DBRef queries are issued on).
 sql_transaction(Queries) when is_list(Queries) ->
     F = fun (Ref) ->
                 lists:foreach(fun (Query) -> odbc_connection:sql_query_t(Ref, Query) end,
