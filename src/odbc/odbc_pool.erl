@@ -2,6 +2,7 @@
 -behavior(supervisor).
 
 -define(DEFAULT_DB_PORT, 3306).
+-define(DEFAULT_POOL_SIZE, 5).
 
 -export([start_link/0, sql_query/1, sql_transaction/1]).
 -export([init/1]).
@@ -13,7 +14,11 @@ start_link() ->
         {mysql, DBHost, DBPort, DBName, DBUser, DBPass} ->
             ok
     end,
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [10, {DBHost, DBPort, DBName, DBUser, DBPass}]).
+    PoolSize = case ejabberd_config:get_local_option(odbc_pool_size) of
+                   undefined -> ?DEFAULT_POOL_SIZE;
+                   N -> N
+               end,
+    supervisor:start_link({local, ?MODULE}, ?MODULE, [PoolSize, {DBHost, DBPort, DBName, DBUser, DBPass}]).
 
 %% Use a random connection from the pool to answer Query.
 sql_query(Query) ->

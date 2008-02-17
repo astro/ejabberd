@@ -158,6 +158,8 @@ process_term(Term, State) ->
 	{loglevel, Loglevel} ->
 	    ejabberd_loglevel:set(Loglevel),
 	    State;
+        {odbc_pool_size, N} ->
+            add_option(odbc_pool_size, N, State);
 	{odbc_server, ODBC_server} ->
 	    odbc_modules_found = check_odbc_modules(ODBC_server),
 	    add_option(odbc_server, ODBC_server, State);
