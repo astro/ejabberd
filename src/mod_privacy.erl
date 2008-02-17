@@ -537,6 +537,8 @@ get_user_list(_, User, Server) ->
 	    #userlist{}
     end.
 
+check_packet(T, User, Server, none, Element, Dir) ->
+    check_packet(T, User, Server, #userlist{list = []}, Element, Dir);
 
 check_packet(_, User, Server,
 	     #userlist{list = List},
