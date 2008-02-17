@@ -7,6 +7,7 @@
 -export([start_link/5]).
 -export([init/1, terminate/2, handle_call/3, handle_cast/2,
          handle_info/2, code_change/3]).
+-export([keep_alive/1]).
 
  % XXX: This shouldn't be exposed. But the cost is high. sql_query
  % should be transactional, and we should expose "dirty" commands,
