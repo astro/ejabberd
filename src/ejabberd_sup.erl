@@ -162,6 +162,11 @@ init([]) ->
 	 infinity,
 	 supervisor,
 	 [ejabberd_tmp_sup]},
+    ODBCPool =
+        {odbc_pool,
+         {odbc_pool, start_link, []},
+         permanent, infinity, supervisor,
+         [odbc_pool]},
     {ok, {{one_for_one, 10, 1},
 	  [Hooks,
 	   NodeGroups,
@@ -179,6 +184,7 @@ init([]) ->
 	   HTTPPollSupervisor,
 	   IQSupervisor,
 	   FrontendSocketSupervisor,
-	   Listener]}}.
+	   Listener,
+           ODBCPool]}}.
 
 

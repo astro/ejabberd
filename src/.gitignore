@@ -1,0 +1,7 @@
+Makefile
+XmppAddr.asn1db
+XmppAddr.erl
+XmppAddr.hrl
+config.log
+config.status
+*.so
