@@ -163,6 +163,8 @@ process_term(Term, State) ->
 	{odbc_server, ODBC_server} ->
 	    odbc_modules_found = check_odbc_modules(ODBC_server),
 	    add_option(odbc_server, ODBC_server, State);
+        {odbc_keepalive_interval, T} ->
+            add_option(odbc_keepalive_interval, T, State);
 	{_Opt, _Val} ->
 	    lists:foldl(fun(Host, S) -> process_host_term(Term, Host, S) end,
 			State, State#state.hosts)

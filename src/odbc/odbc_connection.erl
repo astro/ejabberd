@@ -2,6 +2,7 @@
 -behavior(gen_server).
 
 -define(MAX_TRANSACTION_RESTARTS, 10).
+-define(KEEPALIVE_QUERY, "SELECT 1;").
 
 -export([start_link/5]).
 -export([init/1, terminate/2, handle_call/3, handle_cast/2,
@@ -18,8 +19,15 @@ start_link(DBHost, DBPort, DBName, DBUser, DBPassword) ->
                           [DBHost, DBPort, DBName, DBUser, DBPassword],
                           []).
 
+keep_alive(PID) ->
+    gen_server:call(PID, {sql_query, ?KEEPALIVE_QUERY}, 60000).
+
 %% Start up the link to MySQL.
 init([DBHost, DBPort, DBName, DBUser, DBPassword]) ->
+    case ejabberd_config:get_local_option(odbc_keepalive_interval) of
+        undefined -> ok;
+        T -> timer:apply_interval(T * 1000, ?MODULE, keep_alive, [self()])
+    end,
     Logger = fun(_Level, _Format, _Argument) -> ok end,
     {ok, Ref} = mysql_conn:start(DBHost, DBPort, DBUser, DBPassword, DBName, Logger),
     erlang:monitor(process, Ref),
