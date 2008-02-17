@@ -5,3 +5,4 @@ XmppAddr.hrl
 config.log
 config.status
 *.so
+ejabberdctl.example

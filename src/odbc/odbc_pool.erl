@@ -7,10 +7,10 @@
 -export([init/1]).
 
 start_link() ->
-    case bjc_config:get_option(all, odbc_server) of
-        [{mysql, DBHost, DBName, DBUser, DBPass}] ->
+    case ejabberd_config:get_local_option(odbc_server) of
+        {mysql, DBHost, DBName, DBUser, DBPass} ->
             DBPort = ?DEFAULT_DB_PORT;
-        [{mysql, DBHost, DBPort, DBName, DBUser, DBPass}] ->
+        {mysql, DBHost, DBPort, DBName, DBUser, DBPass} ->
             ok
     end,
     supervisor:start_link({local, ?MODULE}, ?MODULE, [10, {DBHost, DBPort, DBName, DBUser, DBPass}]).

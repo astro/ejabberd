@@ -12,11 +12,11 @@ ALL : $(BEAMS)
 CLEAN :
 	-@erase $(BEAMS)
 
-$(OUTDIR)\ejabberd_odbc.beam : ejabberd_odbc.erl
-	erlc -W $(EFLAGS) -o $(OUTDIR) ejabberd_odbc.erl
+$(OUTDIR)\odbc_connection.beam : odbc_connection.erl
+	erlc -W $(EFLAGS) -o $(OUTDIR) odbc_connection.erl
 
-$(OUTDIR)\ejabberd_odbc_sup.beam : ejabberd_odbc_sup.erl
-	erlc -W $(EFLAGS) -o $(OUTDIR) ejabberd_odbc_sup.erl
+$(OUTDIR)\odbc_pool.beam : odbc_pool.erl
+	erlc -W $(EFLAGS) -o $(OUTDIR) odbc_pool.erl
 
 $(OUTDIR)\odbc_queries.beam : odbc_queries.erl
 	erlc -W $(EFLAGS) -o $(OUTDIR) -D$(DBTYPE) odbc_queries.erl

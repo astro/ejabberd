@@ -158,6 +158,9 @@ process_term(Term, State) ->
 	{loglevel, Loglevel} ->
 	    ejabberd_loglevel:set(Loglevel),
 	    State;
+	{odbc_server, ODBC_server} ->
+	    odbc_modules_found = check_odbc_modules(ODBC_server),
+	    add_option(odbc_server, ODBC_server, State);
 	{_Opt, _Val} ->
 	    lists:foldl(fun(Host, S) -> process_host_term(Term, Host, S) end,
 			State, State#state.hosts)
@@ -180,9 +183,6 @@ process_host_term(Term, Host, State) ->
 	    State;
 	{hosts, _Hosts} ->
 	    State;
-	{odbc_server, ODBC_server} ->
-	    odbc_modules_found = check_odbc_modules(ODBC_server),
-	    add_option({odbc_server, Host}, ODBC_server, State);
 	{Opt, Val} ->
 	    add_option({Opt, Host}, Val, State)
     end.
@@ -313,7 +313,7 @@ check_odbc_modules(ODBC_server) ->
     end.
 
 check_odbc_modules2(ODBC_server) ->
-    check_modules_exists([ejabberd_odbc, ejabberd_odbc_sup, odbc_queries]),
+    check_modules_exists([odbc_connection, odbc_pool, odbc_queries]),
     case ODBC_server of
 	{mysql, _Server, _DB, _Username, _Password} ->
 	    check_modules_exists([mysql, mysql_auth, mysql_conn, mysql_recv]);
