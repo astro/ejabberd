@@ -18,6 +18,7 @@ start_link(DBHost, DBPort, DBName, DBUser, DBPassword) ->
                           [DBHost, DBPort, DBName, DBUser, DBPassword],
                           []).
 
+%% Start up the link to MySQL.
 init([DBHost, DBPort, DBName, DBUser, DBPassword]) ->
     Logger = fun(_Level, _Format, _Argument) -> ok end,
     {ok, Ref} = mysql_conn:start(DBHost, DBPort, DBUser, DBPassword, DBName, Logger),
@@ -44,9 +45,11 @@ handle_info(_Info, State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+% Answer Query on Ref.
 sql_query(Ref, Query) ->
     mysql_to_odbc(mysql_conn:fetch(Ref, Query, self())).
 
+% Answer Query inside transaction on Ref.
 sql_query_t(Ref, Query) ->
     Res = sql_query(Ref, Query),
     case Res of
@@ -66,6 +69,7 @@ sql_query_t(Ref, Query) ->
             Res
     end.
 
+% Satisfy transaction on Ref.
 sql_transaction(Ref, F) ->
     sql_transaction(Ref, F, ?MAX_TRANSACTION_RESTARTS).
 
