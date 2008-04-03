@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : ejabberd_app.erl
 %%% Author  : Alexey Shchepin <alexey@process-one.net>
-%%% Purpose : ejabberd OTP application definition.
+%%% Purpose : ejabberd's application callback module
 %%% Created : 31 Jan 2003 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
@@ -29,9 +29,14 @@
 
 -behaviour(application).
 
--export([start/2, stop/1, init/0]).
+-export([start/2, prep_stop/1, stop/1, init/0]).
 
 -include("ejabberd.hrl").
+
+
+%%%
+%%% Application API
+%%%
 
 start(normal, _Args) ->
     ejabberd_loglevel:set(4),
@@ -46,6 +51,7 @@ start(normal, _Args) ->
     ejabberd_ctl:init(),
     gen_mod:start(),
     ejabberd_config:start(),
+    ejabberd_check:config(),
     start(),
     connect_nodes(),
     Sup = ejabberd_sup:start_link(),
@@ -55,13 +61,26 @@ start(normal, _Args) ->
     %eprof:start(),
     %eprof:profile([self()]),
     %fprof:trace(start, "/tmp/fprof"),
-    load_modules(),
+    start_modules(),
     Sup;
 start(_, _) ->
     {error, badarg}.
 
-stop(_StartArgs) ->
+%% Prepare the application for termination.
+%% This function is called when an application is about to be stopped, 
+%% before shutting down the processes of the application.
+prep_stop(State) ->
+    stop_modules(),
+    State.
+
+%% All the processes were killed when this function is called
+stop(_State) ->
     ok.
+
+
+%%%
+%%% Internal functions
+%%%
 
 start() ->
     spawn_link(?MODULE, init, []).
@@ -108,7 +127,8 @@ db_init() ->
     mnesia:start(),
     mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
 
-load_modules() ->
+%% Start all the modules in all the hosts
+start_modules() ->
     lists:foreach(
       fun(Host) ->
 	      case ejabberd_config:get_local_option({modules, Host}) of
@@ -122,6 +142,21 @@ load_modules() ->
 	      end
       end, ?MYHOSTS).
 
+%% Stop all the modules in all the hosts
+stop_modules() ->
+    lists:foreach(
+      fun(Host) ->
+	      case ejabberd_config:get_local_option({modules, Host}) of
+		  undefined ->
+		      ok;
+		  Modules ->
+		      lists:foreach(
+			fun({Module, _Args}) ->
+				gen_mod:stop_module(Host, Module)
+			end, Modules)
+	      end
+      end, ?MYHOSTS).
+
 connect_nodes() ->
     case ejabberd_config:get_local_option(cluster_nodes) of
 	undefined ->
@@ -131,6 +166,4 @@ connect_nodes() ->
 				  net_kernel:connect_node(Node)
 			  end, Nodes)
     end.
-
-
 

@@ -30,6 +30,7 @@
 -export([start/0, load_file/1,
 	 add_global_option/2, add_local_option/2,
 	 get_global_option/1, get_local_option/1]).
+-export([get_vh_by_auth_method/1]).
 
 -include("ejabberd.hrl").
 -include("ejabberd_config.hrl").
@@ -187,6 +188,8 @@ process_host_term(Term, Host, State) ->
 	    State;
 	{hosts, _Hosts} ->
 	    State;
+	{odbc_server, ODBC_server} ->
+	    add_option({odbc_server, Host}, ODBC_server, State);
 	{Opt, Val} ->
 	    add_option({Opt, Host}, Val, State)
     end.
@@ -215,11 +218,16 @@ add_option(Opt, Val, State) ->
 	    end
     end.
 
-compact(Opt, Val, [], Os) ->
+compact({OptName, Host} = Opt, Val, [], Os) ->
+    ?WARNING_MSG("The option '~p' is defined for the host ~p using host_config "
+    "before the global '~p' option. This host_config option may get overwritten.", [OptName, Host, OptName]),
     [#local_config{key = Opt, value = Val}] ++ Os;
+%% Traverse the list of the options already parsed
 compact(Opt, Val, [O | Os1], Os2) ->
-    case O#local_config.key of
+    case catch O#local_config.key of
+	%% If the key of a local_config matches the Opt that wants to be added
 	Opt ->
+	    %% Then prepend the new value to the list of old values
 	    Os2 ++ [#local_config{key = Opt,
 				  value = Val++O#local_config.value}
 		   ] ++ Os1;
@@ -307,7 +315,6 @@ get_local_option(Opt) ->
 	    undefined
     end.
 
-
 check_odbc_modules(ODBC_server) ->
     case catch check_odbc_modules2(ODBC_server) of
 	{'EXIT', {undef, [{Module, module_info, []} | _]}} ->
@@ -337,3 +344,9 @@ check_odbc_modules2(ODBC_server) ->
 
 check_modules_exists(Modules) ->
     [true = is_list(Module:module_info()) || Module <- Modules].
+
+%% Return the list of hosts handled by a given module
+get_vh_by_auth_method(AuthMethod) ->
+    mnesia:dirty_select(local_config,
+			[{#local_config{key = {auth_method, '$1'},
+					value=AuthMethod},[],['$1']}]).

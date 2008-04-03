@@ -1374,15 +1374,13 @@ get_auth_tags([], U, P, D, R) ->
     {U, P, D, R}.
 
 get_conn_type(StateData) ->
-    case StateData#state.sockmod of
-        ejabberd_http_poll -> http_poll;
-        _ ->
-            case (StateData#state.sockmod):get_sockmod(StateData#state.socket) of
-                ejabberd_http_bind -> http_bind;
-                ejabberd_zlib -> c2s_compressed;
-                tls -> c2s_tls;
-                gen_tcp -> c2s
-            end
+    case (StateData#state.sockmod):get_sockmod(StateData#state.socket) of
+    gen_tcp -> c2s;
+    tls -> c2s_tls;
+    ejabberd_zlib -> c2s_compressed;
+    ejabberd_http_poll -> http_poll;
+    ejabberd_http_bind -> http_bind;
+    _ -> unknown
     end.
 
 process_presence_probe(From, To, StateData) ->

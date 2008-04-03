@@ -199,16 +199,23 @@ In *nix systems, remember to set executable the binary installer before starting
   ./ejabberd-2.0.0_1-linux-x86-installer.bin
 \end{verbatim}
 
-The installer generates desktop shortcuts to start and stop ejabberd.
+\ejabberd{} can be started manually at any time,
+or automatically by the operating system at system boot time.
+
+To start and stop \ejabberd{} manually,
+use the desktop shortcuts created by the installer.
+If the machine doesn't have a graphical system, use the scripts 'start' 
+and 'stop' in the 'bin' directory where \ejabberd{} is installed.
 
 The Windows installer also adds ejabberd as a system service,
 and a shortcut to a debug console for experienced administrators.
-You can start ejabberd using the shortcut or the Windows service. 
 If you want ejabberd to be started automatically at boot time, 
-go to service settings and set ejabberd to be automatic started.
+go to the Windows service settings and set ejabberd to be automatically started.
+Note that the Windows service is a feature still in development, 
+and for example it doesn't read the file ejabberdctl.cfg.
 
-On a Linux system, if you want ejabberd to start as daemon at boot time, 
-copy \term{ejabberd.init} from the bin directory to something like \term{/etc/init.d/ejabberd}
+On a *nix system, if you want ejabberd to be started as daemon at boot time, 
+copy \term{ejabberd.init} from the 'bin' directory to something like \term{/etc/init.d/ejabberd}
 (depending on your distribution) and call \term{/etc/inid.d/ejabberd start} to start it.
 
 The \term{ejabberdctl} administration script is included in the \term{bin} directory.
@@ -259,7 +266,7 @@ To compile \ejabberd{} on a `Unix-like' operating system, you need:
 \item Libexpat 1.95 or higher
 \item Erlang/OTP R10B-9 up to R11B-5. Erlang R12 releases are not yet officially supported, and are not recommended for production servers.
 \item OpenSSL 0.9.6 or higher, for STARTTLS, SASL and SSL encryption. Optional, highly recommended.
-\item Zlib 1.2.3 or higher, for Stream Compression support (XEP-0138). Optional.
+\item Zlib 1.2.3 or higher, for Stream Compression support (\xepref{0138}). Optional.
 \item GNU Iconv 1.8 or higher, for the IRC Transport (mod\_irc). Optional. Not needed on systems with GNU Libc.
 \end{itemize}
 
@@ -392,7 +399,7 @@ The command to compile \ejabberd{} in BSD systems is:
 To compile \ejabberd{} on a Microsoft Windows system, you need:
 \begin{itemize}
 \item MS Visual C++ 6.0 Compiler
-\item \footahref{http://erlang.org/download.html}{Erlang/OTP R11B-5 or higher}
+\item \footahref{http://erlang.org/download.html}{Erlang/OTP R11B-5}
 \item \footahref{http://sourceforge.net/project/showfiles.php?group\_id=10127\&package\_id=11277}{Expat 2.0.0 or higher}
 \item
 \footahref{http://www.gnu.org/software/libiconv/}{GNU Iconv 1.9.2}
@@ -589,22 +596,20 @@ Examples:
 \end{verbatim}
 \end{itemize}
  
-If you have several virtual hosts, 
-and you want to define options such as \term{modules}
-with values specific for some virtual host, 
-instead of defining each option with the syntax
+To define specific ejabberd modules in a virtual host,
+you can define the global \term{modules} option with the common modules,
+and later add specific modules to certain virtual hosts.
+To accomplish that, instead of defining each option in \term{host\_config} with the syntax
 \begin{verbatim}
   {<option-name>, <option-value>}
 \end{verbatim}
-you must use this syntax:
+use this syntax:
 \begin{verbatim}
   {{add, <option-name>}, <option-value>}
 \end{verbatim}
 
-Example:
-\begin{itemize}
-	\item In this example three virtual hosts have some similar modules, but there are also
-	other different modules for some specific virtual hosts:
+In this example three virtual hosts have some similar modules, but there are also
+other different modules for some specific virtual hosts:
 \begin{verbatim}
 % This ejabberd server has three vhosts:
 {hosts, ["one.example.org", "two.example.org", "three.example.org"]}.
@@ -633,7 +638,6 @@ Example:
   {mod_echo,       [{host, "mirror.two.example.org"}]}
 ]}]}.
 \end{verbatim}
-\end{itemize}
 
 \subsection{Listening Ports}
 \label{listened}
@@ -667,7 +671,7 @@ The available modules, their purpose and the options allowed by each one are:
     \footahref{http://www.ejabberd.im/tutorials-transports}{external components} 
     (as defined in the Jabber Component Protocol (\xepref{0114}).\\
     \cline{2-3} & Options& \texttt{access}, \texttt{hosts}, \texttt{inet6},
-    \texttt{ip}, \texttt{shaper}\\
+    \texttt{ip}, \texttt{shaper}, \texttt{service\_check\_from}\\
   \hline \texttt{ejabberd\_http}& Description& Handles incoming HTTP
   connections.\\
     \cline{2-3} & Options& \texttt{certfile}, \texttt{http\_bind}, \texttt{http\_poll},
@@ -733,6 +737,11 @@ This is a detailed description of each option allowed by the listening modules:
     For example, if you want \term{mod\_foo} to serve the URIs that start with \term{/a/b/},
     and you also want \term{mod\_http\_bind} to serve the URIs \term{/http-bind/},
     use this option: \term{\{request\_handlers, [\{["a", "b"], mod\_foo\}, \{["http-bind"], mod\_http\_bind\}]\}}
+  \titem{\{service\_check\_from, true|false\}}
+    By enabling this option, \ejabberd{} allows the component to send packets with any arbitrary domain in the 'from' attribute.
+    Note that \xepref{0114} requires that the domain must match the hostname of the component.
+    Only enable this option if you are completely sure you need to enable it.
+    Default value: false.
   \titem{\{shaper, <access rule>\}} \ind{options!shaper}This option defines a
     shaper for the port (see section~\ref{shapers}). The default value
     is \term{none}.
@@ -770,6 +779,13 @@ There are some additional global options:
   file containing a SSL certificate.
   \titem{\{domain\_certfile, Domain, Path\}} \ind{options!domain\_certfile}
   Full path to the file containing the SSL certificate for a specific domain.
+  \titem{\{s2s\_default\_policy, allow|deny\}}
+  The default policy for incoming and outgoing s2s connections to other Jabber servers.
+  The default value is \term{allow}.
+  \titem{\{\{s2s\_host, Host\}, allow|deny\}}
+  Defines if incoming and outgoing s2s connections with a specific remote host are allowed or denied.
+  This allows to restrict ejabberd to only stablish s2s connections 
+  with a small list of trusted servers, or to block some specific servers.
 \end{description}
 
 For example, the following simple configuration defines:
@@ -824,9 +840,11 @@ In this example, the following configuration defines that:
   for the user called `\term{bad}'.
 \item s2s connections are listened for on port 5269 with STARTTLS for secured
   traffic enabled.
+  Incoming and outgoing connections of remote Jabber servers are denied,
+  only two servers can connect: "jabber.example.org" and "example.com".
 \item Port 5280 is serving the Web Admin and the HTTP Polling service. Note
   that it is also possible to serve them on different ports. The second
-  example in section~\ref{webinterface} shows how exactly this can be done.
+  example in section~\ref{webadmin} shows how exactly this can be done.
 \item All users except for the administrators have a traffic of limit 
   1,000\,Bytes/second
 \item \ind{transports!AIM}The
@@ -884,6 +902,9 @@ In this example, the following configuration defines that:
   }.
   {s2s_use_starttls, true}.
   {s2s_certfile, "/path/to/ssl.pem"}.
+  {s2s_default_policy, deny}.
+  {{s2s_host,"jabber.example.org"}, allow}.
+  {{s2s_host,"example.com"}, allow}.
 \end{verbatim}
 Note, that for \ind{jabberd 1.4}jabberd 1.4- or \ind{WPJabber}WPJabber-based
 services you have to make the transports log and do \ind{XDB}XDB by themselves:
@@ -1065,8 +1086,8 @@ directory. You have to set it root on execution in the case when your PAM module
 requires root privileges (\term{pam\_unix.so} for example). Also you have to grant access
 for \ejabberd{} to this file and remove all other permissions from it:
 \begin{verbatim}
-# chown root:ejabberd /var/lib/ejabberd/priv/lib/epam
-# chmod 4750 /var/lib/ejabberd/priv/lib/epam
+# chown root:ejabberd /var/lib/ejabberd/priv/bin/epam
+# chmod 4750 /var/lib/ejabberd/priv/bin/epam
 \end{verbatim}
 \item Make sure you have the latest version of PAM installed on your system.
 Some old versions of PAM modules cause memory leaks. If you are not able to use the latest
@@ -1236,6 +1257,8 @@ following syntax:
 \end{verbatim}
 where \term{<rate>} stands for the maximum allowed incoming rate in bytes per
 second.
+When a connection exceeds this limit, \ejabberd{} stops reading from the socket 
+until the average rate is again below the allowed maximum.
 
 Examples:
 \begin{itemize}
@@ -1658,8 +1681,8 @@ yet.
 
 Parameters:
 \begin{description}
-\titem{ldap\_server} \ind{options!ldap\_server}IP address or dns name of your
-LDAP server. This option is required.
+\titem{ldap\_servers} \ind{options!ldap\_server}List of IP addresses or DNS names of your
+LDAP servers. This option is required.
 \titem{ldap\_port} \ind{options!ldap\_port}Port to connect to your LDAP server.
   The initial default value is~389, so it is used when nothing is set into the 
 configuration file. 
@@ -1895,7 +1918,7 @@ The following table lists all modules included in \ejabberd{}.
   \begin{tabular}{|l|l|l|l|}
     \hline Module & Feature & Dependencies & Needed for XMPP? \\ 
     \hline \hline \modadhoc{} & Ad-Hoc Commands (\xepref{0050}) &  & No \\ 
-    \hline \modannounce{} & Manage announcements & \modadhoc{} & No \\ 
+    \hline \modannounce{} & Manage announcements & recommends \modadhoc{} & No \\ 
     \hline \modcaps{} &  Request and cache Entity Capabilities (\xepref{0115}) & & No \\ 
     \hline \modconfigure{} & Server configuration using Ad-Hoc & \modadhoc{} & No \\ 
     \hline \moddisco{} & Service Discovery (\xepref{0030}) &  & No \\ 
@@ -2043,11 +2066,18 @@ the "@HOST@" keyword must be used:
 \ind{modules!\modannounce{}}\ind{MOTD}\ind{message of the day}\ind{announcements}
 
 This module enables configured users to broadcast announcements and to set
-the message of the day (MOTD). Configured users can do these actions with their
-\Jabber{} client using Ad-hoc commands or by sending messages to specific JIDs. These JIDs are listed in
-next paragraph. The first JID in each entry will apply only to the virtual host
+the message of the day (MOTD).  
+Configured users can perform these actions with a
+\Jabber{} client either using Ad-hoc commands
+or sending messages to specific JIDs.
+
+The Ad-hoc commands are listed in the Server Discovery.
+For this feature to work, \modadhoc{} must be enabled.
+
+The specific JIDs where messages can be sent are listed bellow.
+The first JID in each entry will apply only to the specified virtual host
 \jid{example.org}, while the JID between brackets will apply to all virtual
-hosts:
+hosts in ejabberd.
 \begin{description}
 \titem{example.org/announce/all (example.org/announce/all-hosts/all)} The
   message is sent to all registered users. If the user is online and connected
@@ -2085,6 +2115,7 @@ Examples:
   {modules,
    [
     ...
+    {mod_adhoc, []},
     {mod_announce, [{access, announce}]},
     ...
    ]}.
@@ -2101,6 +2132,7 @@ Examples:
   {modules,
    [
     ...
+    {mod_adhoc, []},
     {mod_announce, [{access, announce}]},
     ...
    ]}.
@@ -3103,6 +3135,7 @@ Options:
 \titem{search\_all\_hosts}\ind{options!search\_all\_hosts}If this option is set
   to \term{true}, search operations will apply to all virtual hosts. Otherwise
   only the current host will be searched. The default value is \term{true}.
+  This option is available in \modvcard, but not available in \modvcardodbc.
 \end{description}
 
 Examples:
@@ -3143,14 +3176,18 @@ Examples:
 
 \ejabberd{} can map LDAP attributes to vCard fields. This behaviour is
 implemented in the \modvcardldap{} module. This module does not depend on the
-authentication method (see~\ref{ldapauth}). The \modvcardldap{} module has
+authentication method (see~\ref{ldapauth}).
+
+The \modvcardldap{} module has
 its own optional parameters. The first group of parameters has the same
 meaning as the top-level LDAP parameters to set the authentication method:
 \option{ldap\_servers}, \option{ldap\_port}, \option{ldap\_rootdn},
 \option{ldap\_password}, \option{ldap\_base}, \option{ldap\_uids}, and
 \option{ldap\_filter}. See section~\ref{ldapauth} for detailed information
 about these options. If one of these options is not set, \ejabberd{} will look
-for the top-level option with the same name. The second group of parameters
+for the top-level option with the same name.
+
+The second group of parameters
 consists of the following \modvcardldap{}-specific options:
 
 \begin{description}
@@ -3161,6 +3198,9 @@ consists of the following \modvcardldap{}-specific options:
   \term{false}). If disabled, the option \term{host} will be ignored and the
   \Jabber{} User Directory service will not appear in the Service Discovery item
   list. The default value is \term{true}.
+\titem{matches}\ind{options!matches}With this option, the number of reported
+  search results can be limited. If the option's value is set to \term{infinity},
+  all search results are reported. The default value is \term{30}.
 \titem{ldap\_vcard\_map}\ind{options!ldap\_vcard\_map}With this option you can
   set the table that maps LDAP attributes to vCard fields. The format is:
   \term{[{Name\_of\_vCard\_field, Pattern, List\_of\_LDAP\_attributes}, ...]}.\ind{protocols!RFC 2426: vCard MIME Directory Profile}
@@ -3173,7 +3213,7 @@ consists of the following \modvcardldap{}-specific options:
   \term{"\%u"} will be replaced with the user part of a JID, and \term{"\%d"}
   will be replaced with the domain part of a JID. The default is:
   \begin{verbatim}
-  [{"NICK", "%u", []},
+  [{"NICKNAME", "%u", []},
    {"FN", "%s", ["displayName"]},
    {"LAST", "%s", ["sn"]},
    {"FIRST", "%s", ["givenName"]},
@@ -3226,7 +3266,7 @@ consists of the following \modvcardldap{}-specific options:
    {"Given Name", "FIRST"},
    {"Middle Name", "MIDDLE"},
    {"Family Name", "LAST"},
-   {"Nickname", "NICK"},
+   {"Nickname", "NICKNAME"},
    {"Birthday", "BDAY"},
    {"Country", "CTRY"},
    {"City", "LOCALITY"},
@@ -3281,7 +3321,7 @@ Also we want users to search each other. Let's see how we can set it up:
       {ldap_filter, ""},
       %% Now we want to define vCard pattern
       {ldap_vcard_map,
-       [{"NICK", "%u", []}, % just use user's part of JID as his nickname
+       [{"NICKNAME", "%u", []}, % just use user's part of JID as his nickname
         {"FIRST", "%s", ["givenName"]},
         {"LAST", "%s", ["sn"]},
         {"FN", "%s, %s", ["sn", "givenName"]}, % example: "Smith, John"
@@ -3298,7 +3338,7 @@ Also we want users to search each other. Let's see how we can set it up:
       %% Note that JID is always returned with search results
       {ldap_search_reported,
        [{"Full Name", "FN"},
-        {"Nickname", "NICK"},
+        {"Nickname", "NICKNAME"},
         {"Birthday", "BDAY"}]}
     ]}
     ...
@@ -3311,7 +3351,7 @@ searching his info in LDAP.
 \item \term{ldap\_vcard\_map} example:
 \begin{verbatim}
   {ldap_vcard_map,
-   [{"NICK", "%u", []},
+   [{"NICKNAME", "%u", []},
     {"FN", "%s", ["displayName"]},
     {"CTRY", "Russia", []},
     {"EMAIL", "%u@%d", []},
@@ -3332,7 +3372,7 @@ searching his info in LDAP.
    [{"Full Name", "FN"},
     {"Email", "EMAIL"},
     {"Birthday", "BDAY"},
-    {"Nickname", "NICK"}
+    {"Nickname", "NICKNAME"}
    ]},
 \end{verbatim}
 \end{itemize}
@@ -3950,14 +3990,13 @@ Figure~\ref{fig:discorus}, for example, shows the reply to the following query:
   \label{fig:discorus}
 \end{figure}
 
-The Web Admin also supports the \verb|Accept-Language| HTTP header (compare
-figure~\ref{fig:webadmmainru} with figure~\ref{fig:webadmmain})
+The Web Admin also supports the \verb|Accept-Language| HTTP header.
 
 \begin{figure}[htbp]
   \centering
   \insimg{webadmmainru.png}
-  \caption{Top page from the Web Admin with HTTP header
-    `Accept-Language: ru'}
+  \caption{Web Admin showing a virtual host when the web browser provides the 
+     HTTP header `Accept-Language: ru'}
   \label{fig:webadmmainru}
 \end{figure}
 
@@ -3981,8 +4020,8 @@ Thanks to all people who contributed to this guide:
 \item Evgeniy Khramtsov (\ahrefurl{xmpp:xram@jabber.ru})
 \item Florian Zumbiehl (\ahrefurl{xmpp:florz@florz.de})
 \item Michael Grigutsch (\ahrefurl{xmpp:migri@jabber.i-pobox.net})
-\item Mickael Remond (\ahrefurl{xmpp:mremond@erlang-projects.org})
-\item Sander Devrieze (\ahrefurl{xmpp:sander@devrieze.dyndns.org})
+\item Mickael Remond (\ahrefurl{xmpp:mremond@process-one.net})
+\item Sander Devrieze (\ahrefurl{xmpp:s.devrieze@gmail.com})
 \item Sergei Golovan (\ahrefurl{xmpp:sgolovan@nes.ru})
 \item Vsevolod Pelipas (\ahrefurl{xmpp:vsevoload@jabber.ru})
 \end{itemize}

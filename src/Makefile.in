@@ -40,7 +40,13 @@ ifeq (@transient_supervisors@, false)
   ERLC_FLAGS+=-DNO_TRANSIENT_SUPERVISORS
 endif
 
+INSTALL_EPAM=
+ifeq (@pam@, pam)
+  INSTALL_EPAM=install -m 750 epam $(PBINDIR)
+endif
+
 prefix = @prefix@
+exec_prefix = @exec_prefix@
 
 SUBDIRS = @mod_irc@ @mod_pubsub@ @mod_muc@ @mod_proxy65@ @eldap@ @pam@ @web@ stringprep @tls@ @odbc@ @ejabberd_zlib@
 ERLSHLIBS = expat_erl.so
@@ -50,14 +56,15 @@ BEAMS = $(SOURCES:.erl=.beam)
 
 DESTDIR =
 
-EJABBERDDIR = $(DESTDIR)@prefix@/var/lib/ejabberd
+EJABBERDDIR = $(DESTDIR)@localstatedir@/lib/ejabberd
 BEAMDIR = $(EJABBERDDIR)/ebin
 PRIVDIR = $(EJABBERDDIR)/priv
 SODIR = $(PRIVDIR)/lib
+PBINDIR = $(PRIVDIR)/bin
 MSGSDIR = $(PRIVDIR)/msgs
-LOGDIR = $(DESTDIR)@prefix@/var/log/ejabberd
-ETCDIR = $(DESTDIR)@prefix@/etc/ejabberd
-SBINDIR = $(DESTDIR)@prefix@/sbin
+LOGDIR = $(DESTDIR)@localstatedir@/log/ejabberd
+ETCDIR = $(DESTDIR)@sysconfdir@/ejabberd
+SBINDIR = $(DESTDIR)@sbindir@
 
 ifeq ($(shell uname),Darwin)
 DYNAMIC_LIB_CFLAGS = -fPIC -bundle -flat_namespace -undefined suppress
@@ -101,8 +108,9 @@ install: all
 	rm -f $(BEAMDIR)/configure.beam
 	install -m 644 *.app $(BEAMDIR)
 	install -d $(SODIR)
+	install -d $(PBINDIR)
 	install -m 644 *.so $(SODIR)
-	-install -m 750 epam $(SODIR)
+	$(INSTALL_EPAM)
 	install -d $(MSGSDIR)
 	install -m 644 msgs/*.msg $(MSGSDIR)
 	install -d $(ETCDIR)

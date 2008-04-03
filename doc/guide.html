@@ -6,7 +6,7 @@
  
  
 
- ejabberd 2.0.0-rc1 
+ ejabberd 2.0.0 
  
  Installation and Operation Guide
  
@@ -76,14 +76,14 @@ SPAN{width:20%; float:right; text-align:left; margin-left:auto;}
 </STYLE>
 </HEAD>
 <BODY >
-<!--HEVEA command line is: /usr/bin/hevea -fix -noiso -pedantic guide.tex -->
+<!--HEVEA command line is: /usr/bin/hevea -fix -pedantic guide.tex -->
 <!--CUT DEF chapter 1 --><P><A NAME="titlepage"></A>
 
 </P><TABLE CLASS="title"><TR><TD><H1 CLASS="titlemain">
 <HR SIZE=2><BR>
 <BR>
 
-<TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP> <FONT SIZE=6><B>ejabberd 2.0.0-rc1 </B></FONT></TD></TR>
+<TABLE CELLSPACING=6 CELLPADDING=0><TR><TD ALIGN=right NOWRAP> <FONT SIZE=6><B>ejabberd 2.0.0 </B></FONT></TD></TR>
 <TR><TD ALIGN=right NOWRAP>&nbsp;</TD></TR>
 <TR><TD ALIGN=right NOWRAP> <FONT SIZE=6>Installation and Operation Guide</FONT></TD></TR>
 </TABLE><BR>
@@ -162,71 +162,73 @@ SPAN{width:20%; float:right; text-align:left; margin-left:auto;}
 </LI><LI CLASS="li-toc"><A HREF="#htoc36">3.3.3&#XA0;&#XA0;<TT>mod_announce</TT></A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc37">3.3.4&#XA0;&#XA0;<TT>mod_disco</TT></A>
 </LI><LI CLASS="li-toc"><A HREF="#htoc38">3.3.5&#XA0;&#XA0;<TT>mod_echo</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc39">3.3.6&#XA0;&#XA0;<TT>mod_irc</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc40">3.3.7&#XA0;&#XA0;<TT>mod_last</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc41">3.3.8&#XA0;&#XA0;<TT>mod_muc</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc42">3.3.9&#XA0;&#XA0;<TT>mod_muc_log</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc43">3.3.10&#XA0;&#XA0;<TT>mod_offline</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc44">3.3.11&#XA0;&#XA0;<TT>mod_privacy</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc45">3.3.12&#XA0;&#XA0;<TT>mod_private</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc46">3.3.13&#XA0;&#XA0;<TT>mod_proxy65</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc47">3.3.14&#XA0;&#XA0;<TT>mod_pubsub</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc48">3.3.15&#XA0;&#XA0;<TT>mod_register</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc49">3.3.16&#XA0;&#XA0;<TT>mod_roster</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc50">3.3.17&#XA0;&#XA0;<TT>mod_service_log</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc51">3.3.18&#XA0;&#XA0;<TT>mod_shared_roster</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc52">3.3.19&#XA0;&#XA0;<TT>mod_stats</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc53">3.3.20&#XA0;&#XA0;<TT>mod_time</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc54">3.3.21&#XA0;&#XA0;<TT>mod_vcard</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc55">3.3.22&#XA0;&#XA0;<TT>mod_vcard_ldap</TT></A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc56">3.3.23&#XA0;&#XA0;<TT>mod_version</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc39">3.3.6&#XA0;&#XA0;<TT>mod_http_bind</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc40">3.3.7&#XA0;&#XA0;<TT>mod_http_fileserver</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc41">3.3.8&#XA0;&#XA0;<TT>mod_irc</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc42">3.3.9&#XA0;&#XA0;<TT>mod_last</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc43">3.3.10&#XA0;&#XA0;<TT>mod_muc</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc44">3.3.11&#XA0;&#XA0;<TT>mod_muc_log</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc45">3.3.12&#XA0;&#XA0;<TT>mod_offline</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc46">3.3.13&#XA0;&#XA0;<TT>mod_privacy</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc47">3.3.14&#XA0;&#XA0;<TT>mod_private</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc48">3.3.15&#XA0;&#XA0;<TT>mod_proxy65</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc49">3.3.16&#XA0;&#XA0;<TT>mod_pubsub</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc50">3.3.17&#XA0;&#XA0;<TT>mod_register</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc51">3.3.18&#XA0;&#XA0;<TT>mod_roster</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc52">3.3.19&#XA0;&#XA0;<TT>mod_service_log</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc53">3.3.20&#XA0;&#XA0;<TT>mod_shared_roster</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc54">3.3.21&#XA0;&#XA0;<TT>mod_stats</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc55">3.3.22&#XA0;&#XA0;<TT>mod_time</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc56">3.3.23&#XA0;&#XA0;<TT>mod_vcard</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc57">3.3.24&#XA0;&#XA0;<TT>mod_vcard_ldap</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc58">3.3.25&#XA0;&#XA0;<TT>mod_version</TT></A>
 </LI></UL>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc57">Chapter&#XA0;4&#XA0;&#XA0;Managing an <TT>ejabberd</TT> server</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc59">Chapter&#XA0;4&#XA0;&#XA0;Managing an <TT>ejabberd</TT> server</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc58">4.1&#XA0;&#XA0;<TT>ejabberdctl</TT></A>
+<A HREF="#htoc60">4.1&#XA0;&#XA0;<TT>ejabberdctl</TT></A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc59">4.1.1&#XA0;&#XA0;Commands</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc60">4.1.2&#XA0;&#XA0;Erlang runtime system</A>
+<A HREF="#htoc61">4.1.1&#XA0;&#XA0;Commands</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc62">4.1.2&#XA0;&#XA0;Erlang runtime system</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc61">4.2&#XA0;&#XA0;Web Admin</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc62">4.3&#XA0;&#XA0;Ad-hoc Commands</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc63">4.4&#XA0;&#XA0;Change Computer Hostname</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc63">4.2&#XA0;&#XA0;Web Admin</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc64">4.3&#XA0;&#XA0;Ad-hoc Commands</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc65">4.4&#XA0;&#XA0;Change Computer Hostname</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc64">Chapter&#XA0;5&#XA0;&#XA0;Securing <TT>ejabberd</TT></A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc66">Chapter&#XA0;5&#XA0;&#XA0;Securing <TT>ejabberd</TT></A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc65">5.1&#XA0;&#XA0;Firewall Settings</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc66">5.2&#XA0;&#XA0;epmd </A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc67">5.3&#XA0;&#XA0;Erlang Cookie</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc68">5.4&#XA0;&#XA0;Erlang node name</A>
+<A HREF="#htoc67">5.1&#XA0;&#XA0;Firewall Settings</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc68">5.2&#XA0;&#XA0;epmd </A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc69">5.3&#XA0;&#XA0;Erlang Cookie</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc70">5.4&#XA0;&#XA0;Erlang node name</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc69">Chapter&#XA0;6&#XA0;&#XA0;Clustering</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc71">Chapter&#XA0;6&#XA0;&#XA0;Clustering</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc70">6.1&#XA0;&#XA0;How it Works</A>
+<A HREF="#htoc72">6.1&#XA0;&#XA0;How it Works</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc71">6.1.1&#XA0;&#XA0;Router</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc72">6.1.2&#XA0;&#XA0;Local Router</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc73">6.1.3&#XA0;&#XA0;Session Manager</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc74">6.1.4&#XA0;&#XA0;s2s Manager</A>
+<A HREF="#htoc73">6.1.1&#XA0;&#XA0;Router</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc74">6.1.2&#XA0;&#XA0;Local Router</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc75">6.1.3&#XA0;&#XA0;Session Manager</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc76">6.1.4&#XA0;&#XA0;s2s Manager</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc75">6.2&#XA0;&#XA0;Clustering Setup</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc76">6.3&#XA0;&#XA0;Service Load-Balancing</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc77">6.2&#XA0;&#XA0;Clustering Setup</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc78">6.3&#XA0;&#XA0;Service Load-Balancing</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc77">6.3.1&#XA0;&#XA0;Components Load-Balancing</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc78">6.3.2&#XA0;&#XA0;Domain Load-Balancing Algorithm</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc79">6.3.3&#XA0;&#XA0;Load-Balancing Buckets</A>
+<A HREF="#htoc79">6.3.1&#XA0;&#XA0;Components Load-Balancing</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc80">6.3.2&#XA0;&#XA0;Domain Load-Balancing Algorithm</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc81">6.3.3&#XA0;&#XA0;Load-Balancing Buckets</A>
 </LI></UL>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc80">Chapter&#XA0;7&#XA0;&#XA0;Debugging</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc82">Chapter&#XA0;7&#XA0;&#XA0;Debugging</A>
 <UL CLASS="toc"><LI CLASS="li-toc">
-<A HREF="#htoc81">7.1&#XA0;&#XA0;Watchdog Alerts</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc82">7.2&#XA0;&#XA0;Log Files</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc83">7.3&#XA0;&#XA0;Debug Console</A>
+<A HREF="#htoc83">7.1&#XA0;&#XA0;Watchdog Alerts</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc84">7.2&#XA0;&#XA0;Log Files</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc85">7.3&#XA0;&#XA0;Debug Console</A>
 </LI></UL>
-</LI><LI CLASS="li-toc"><A HREF="#htoc84">Appendix&#XA0;A&#XA0;&#XA0;Internationalization and Localization</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc85">Appendix&#XA0;B&#XA0;&#XA0;Release Notes</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc86">Appendix&#XA0;C&#XA0;&#XA0;Acknowledgements</A>
-</LI><LI CLASS="li-toc"><A HREF="#htoc87">Appendix&#XA0;D&#XA0;&#XA0;Copyright Information</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc86">Appendix&#XA0;A&#XA0;&#XA0;Internationalization and Localization</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc87">Appendix&#XA0;B&#XA0;&#XA0;Release Notes</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc88">Appendix&#XA0;C&#XA0;&#XA0;Acknowledgements</A>
+</LI><LI CLASS="li-toc"><A HREF="#htoc89">Appendix&#XA0;D&#XA0;&#XA0;Copyright Information</A>
 </LI></UL><!--TOC chapter Introduction-->
 <H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc1">Chapter&#XA0;1</A>&#XA0;&#XA0;Introduction</H1><!--SEC END --><P>
 <A NAME="intro"></A></P><P><TT>ejabberd</TT> is a free and open source instant messaging server written in <A HREF="http://www.erlang.org/">Erlang</A>.</P><P><TT>ejabberd</TT> is cross-platform, distributed, fault-tolerant, and based on open standards to achieve real-time communication.</P><P><TT>ejabberd</TT> is designed to be a rock-solid and feature rich XMPP server.</P><P><TT>ejabberd</TT> is suitable for small deployments, whether they need to be scalable or not, as well as extremely big deployments.</P><!--TOC section Key Features-->
@@ -299,12 +301,17 @@ are available in the Process-one <TT>ejabberd</TT> downloads page:
 server and does not require any extra dependencies.</P><P>In *nix systems, remember to set executable the binary installer before starting it. For example:
 </P><PRE CLASS="verbatim">  chmod +x ejabberd-2.0.0_1-linux-x86-installer.bin
   ./ejabberd-2.0.0_1-linux-x86-installer.bin
-</PRE><P>The installer generates desktop shortcuts to start and stop ejabberd.</P><P>The Windows installer also adds ejabberd as a system service,
+</PRE><P><TT>ejabberd</TT> can be started manually at any time,
+or automatically by the operating system at system boot time.</P><P>To start and stop <TT>ejabberd</TT> manually,
+use the desktop shortcuts created by the installer.
+If the machine doesn&#X2019;t have a graphical system, use the scripts &#X2019;start&#X2019; 
+and &#X2019;stop&#X2019; in the &#X2019;bin&#X2019; directory where <TT>ejabberd</TT> is installed.</P><P>The Windows installer also adds ejabberd as a system service,
 and a shortcut to a debug console for experienced administrators.
-You can start ejabberd using the shortcut or the Windows service. 
 If you want ejabberd to be started automatically at boot time, 
-go to service settings and set ejabberd to be automatic started.</P><P>On a Linux system, if you want ejabberd to start as daemon at boot time, 
-copy <TT>ejabberd.init</TT> from the bin directory to something like <TT>/etc/init.d/ejabberd</TT>
+go to the Windows service settings and set ejabberd to be automatically started.
+Note that the Windows service is a feature still in development, 
+and for example it doesn&#X2019;t read the file ejabberdctl.cfg.</P><P>On a *nix system, if you want ejabberd to be started as daemon at boot time, 
+copy <TT>ejabberd.init</TT> from the &#X2019;bin&#X2019; directory to something like <TT>/etc/init.d/ejabberd</TT>
 (depending on your distribution) and call <TT>/etc/inid.d/ejabberd start</TT> to start it.</P><P>The <TT>ejabberdctl</TT> administration script is included in the <TT>bin</TT> directory.
 Please refer to the section&#XA0;<A HREF="#ejabberdctl">4.1</A> for details about <TT>ejabberdctl</TT>,
 and configurable options to fine tune the Erlang runtime system.</P><!--TOC section Installing <TT>ejabberd</TT> with Operating System specific packages-->
@@ -337,7 +344,7 @@ GNU Make
 </LI><LI CLASS="li-itemize">Libexpat 1.95 or higher
 </LI><LI CLASS="li-itemize">Erlang/OTP R10B-9 up to R11B-5. Erlang R12 releases are not yet officially supported, and are not recommended for production servers.
 </LI><LI CLASS="li-itemize">OpenSSL 0.9.6 or higher, for STARTTLS, SASL and SSL encryption. Optional, highly recommended.
-</LI><LI CLASS="li-itemize">Zlib 1.2.3 or higher, for Stream Compression support (XEP-0138). Optional.
+</LI><LI CLASS="li-itemize">Zlib 1.2.3 or higher, for Stream Compression support (<A HREF="http://www.xmpp.org/extensions/xep-0138.html">XEP-0138</A>). Optional.
 </LI><LI CLASS="li-itemize">GNU Iconv 1.8 or higher, for the IRC Transport (mod_irc). Optional. Not needed on systems with GNU Libc.
 </LI></UL><!--TOC subsection Download Source Code-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc10">2.4.2</A>&#XA0;&#XA0;Download Source Code</H3><!--SEC END --><P>
@@ -421,7 +428,7 @@ and configurable options to fine tune the Erlang runtime system.</P><!--TOC subs
 <A NAME="windowsreq"></A></P><P>To compile <TT>ejabberd</TT> on a Microsoft Windows system, you need:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 MS Visual C++ 6.0 Compiler
-</LI><LI CLASS="li-itemize"><A HREF="http://erlang.org/download.html">Erlang/OTP R11B-5 or higher</A>
+</LI><LI CLASS="li-itemize"><A HREF="http://erlang.org/download.html">Erlang/OTP R11B-5</A>
 </LI><LI CLASS="li-itemize"><A HREF="http://sourceforge.net/project/showfiles.php?group_id=10127&package_id=11277">Expat 2.0.0 or higher</A>
 </LI><LI CLASS="li-itemize"><A HREF="http://www.gnu.org/software/libiconv/">GNU Iconv 1.9.2</A>
 (optional)
@@ -464,7 +471,7 @@ There are two ways to register a Jabber account:
 <OL CLASS="enumerate" type=a><LI CLASS="li-enumerate">
 Using <TT>ejabberdctl</TT> (see section&#XA0;<A HREF="#ejabberdctl">4.1</A>):
 <PRE CLASS="verbatim">% ejabberdctl register admin1 example.org FgT5bk3
-</PRE></LI><LI CLASS="li-enumerate">Using a Jabber client and In-Band Registration (see section&#XA0;<A HREF="#modregister">3.3.15</A>).
+</PRE></LI><LI CLASS="li-enumerate">Using a Jabber client and In-Band Registration (see section&#XA0;<A HREF="#modregister">3.3.17</A>).
 </LI></OL>
 </LI><LI CLASS="li-enumerate">Edit the <TT>ejabberd</TT> configuration file to give administration rights to the Jabber account you created:
 <PRE CLASS="verbatim">  {acl, admins, {user, "admin1", "example.org"}}.
@@ -550,18 +557,16 @@ while domain <TT>example.com</TT> is using the LDAP servers running on the domai
                               {ldap_rootdn, "dc=localdomain"},
                               {ldap_rootdn, "dc=example,dc=com"},
                               {ldap_password, ""}]}.
-</PRE></LI></UL><P>If you have several virtual hosts, 
-and you want to define options such as <TT>modules</TT>
-with values specific for some virtual host, 
-instead of defining each option with the syntax
+</PRE></LI></UL><P>To define specific ejabberd modules in a virtual host,
+you can define the global <TT>modules</TT> option with the common modules,
+and later add specific modules to certain virtual hosts.
+To accomplish that, instead of defining each option in <TT>host_config</TT> with the syntax
 </P><PRE CLASS="verbatim">  {&lt;option-name&gt;, &lt;option-value&gt;}
-</PRE><P>you must use this syntax:
+</PRE><P>use this syntax:
 </P><PRE CLASS="verbatim">  {{add, &lt;option-name&gt;}, &lt;option-value&gt;}
-</PRE><P>Example:
-</P><UL CLASS="itemize"><LI CLASS="li-itemize">
-	In this example three virtual hosts have some similar modules, but there are also
-	other different modules for some specific virtual hosts:
-<PRE CLASS="verbatim">% This ejabberd server has three vhosts:
+</PRE><P>In this example three virtual hosts have some similar modules, but there are also
+other different modules for some specific virtual hosts:
+</P><PRE CLASS="verbatim">% This ejabberd server has three vhosts:
 {hosts, ["one.example.org", "two.example.org", "three.example.org"]}.
 
 % Configuration of modules that are common to all vhosts
@@ -587,7 +592,7 @@ instead of defining each option with the syntax
 {host_config, "two.example.org", [{{add, modules}, [
   {mod_echo,       [{host, "mirror.two.example.org"}]}
 ]}]}.
-</PRE></LI></UL><!--TOC subsection Listening Ports-->
+</PRE><!--TOC subsection Listening Ports-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc22">3.1.3</A>&#XA0;&#XA0;Listening Ports</H3><!--SEC END --><P>
 <A NAME="listened"></A>
 </P><P>The option <TT>listen</TT> defines for which addresses and ports <TT>ejabberd</TT>
@@ -614,7 +619,7 @@ connections.</TD></TR>
 <A HREF="http://www.ejabberd.im/tutorials-transports">external components</A> 
 (as defined in the Jabber Component Protocol (<A HREF="http://www.xmpp.org/extensions/xep-0114.html">XEP-0114</A>).</TD></TR>
 <TR><TD VALIGN=top ALIGN=left NOWRAP>&nbsp;</TD><TD VALIGN=top ALIGN=left NOWRAP>Options</TD><TD VALIGN=top ALIGN=left><TT>access</TT>, <TT>hosts</TT>, <TT>inet6</TT>,
-<TT>ip</TT>, <TT>shaper</TT></TD></TR>
+<TT>ip</TT>, <TT>shaper</TT>, <TT>service_check_from</TT></TD></TR>
 <TR><TD VALIGN=top ALIGN=left NOWRAP><TT>ejabberd_http</TT></TD><TD VALIGN=top ALIGN=left NOWRAP>Description</TD><TD VALIGN=top ALIGN=left>Handles incoming HTTP
 connections.</TD></TR>
 <TR><TD VALIGN=top ALIGN=left NOWRAP>&nbsp;</TD><TD VALIGN=top ALIGN=left NOWRAP>Options</TD><TD VALIGN=top ALIGN=left><TT>certfile</TT>, <TT>http_bind</TT>, <TT>http_poll</TT>,
@@ -671,6 +676,11 @@ The Path is a list of strings; so the URIs that start with that Path will be ser
 For example, if you want <TT>mod_foo</TT> to serve the URIs that start with <TT>/a/b/</TT>,
 and you also want <TT>mod_http_bind</TT> to serve the URIs <TT>/http-bind/</TT>,
 use this option: <TT>{request_handlers, [{["a", "b"], mod_foo}, {["http-bind"], mod_http_bind}]}</TT>
+</DD><DT CLASS="dt-description"><B><TT>{service_check_from, true|false}</TT></B></DT><DD CLASS="dd-description">
+By enabling this option, <TT>ejabberd</TT> allows the component to send packets with any arbitrary domain in the &#X2019;from&#X2019; attribute.
+Note that <A HREF="http://www.xmpp.org/extensions/xep-0114.html">XEP-0114</A> requires that the domain must match the hostname of the component.
+Only enable this option if you are completely sure you need to enable it.
+Default value: false.
 </DD><DT CLASS="dt-description"><B><TT>{shaper, &lt;access rule&gt;}</TT></B></DT><DD CLASS="dd-description"> This option defines a
 shaper for the port (see section&#XA0;<A HREF="#shapers">3.1.6</A>). The default value
 is <TT>none</TT>.
@@ -706,6 +716,13 @@ use STARTTLS for s2s connections.
 file containing a SSL certificate.
 </DD><DT CLASS="dt-description"><B><TT>{domain_certfile, Domain, Path}</TT></B></DT><DD CLASS="dd-description"> 
 Full path to the file containing the SSL certificate for a specific domain.
+</DD><DT CLASS="dt-description"><B><TT>{s2s_default_policy, allow|deny}</TT></B></DT><DD CLASS="dd-description">
+The default policy for incoming and outgoing s2s connections to other Jabber servers.
+The default value is <TT>allow</TT>.
+</DD><DT CLASS="dt-description"><B><TT>{{s2s_host, Host}, allow|deny}</TT></B></DT><DD CLASS="dd-description">
+Defines if incoming and outgoing s2s connections with a specific remote host are allowed or denied.
+This allows to restrict ejabberd to only stablish s2s connections 
+with a small list of trusted servers, or to block some specific servers.
 </DD></DL><P>For example, the following simple configuration defines:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 There are three domains. The default certificate file is <TT>server.pem</TT>.
@@ -754,9 +771,11 @@ c2s connections are listened for on port 5222 and 5223 (SSL) and denied
 for the user called &#X2018;<TT>bad</TT>&#X2019;.
 </LI><LI CLASS="li-itemize">s2s connections are listened for on port 5269 with STARTTLS for secured
 traffic enabled.
+Incoming and outgoing connections of remote Jabber servers are denied,
+only two servers can connect: "jabber.example.org" and "example.com".
 </LI><LI CLASS="li-itemize">Port 5280 is serving the Web Admin and the HTTP Polling service. Note
 that it is also possible to serve them on different ports. The second
-example in section&#XA0;<A HREF="#webinterface">??</A> shows how exactly this can be done.
+example in section&#XA0;<A HREF="#webadmin">4.2</A> shows how exactly this can be done.
 </LI><LI CLASS="li-itemize">All users except for the administrators have a traffic of limit 
 1,000&#XA0;Bytes/second
 </LI><LI CLASS="li-itemize">The
@@ -812,6 +831,9 @@ connected to port 5237 with password &#X2018;<TT>ggsecret</TT>&#X2019;.
   }.
   {s2s_use_starttls, true}.
   {s2s_certfile, "/path/to/ssl.pem"}.
+  {s2s_default_policy, deny}.
+  {{s2s_host,"jabber.example.org"}, allow}.
+  {{s2s_host,"example.com"}, allow}.
 </PRE><P>Note, that for jabberd 1.4- or WPJabber-based
 services you have to make the transports log and do XDB by themselves:
 </P><PRE CLASS="verbatim">  &lt;!--
@@ -938,8 +960,8 @@ To perform PAM authentication <TT>ejabberd</TT> uses external C-program called
 directory. You have to set it root on execution in the case when your PAM module
 requires root privileges (<TT>pam_unix.so</TT> for example). Also you have to grant access
 for <TT>ejabberd</TT> to this file and remove all other permissions from it:
-<PRE CLASS="verbatim"># chown root:ejabberd /var/lib/ejabberd/priv/lib/epam
-# chmod 4750 /var/lib/ejabberd/priv/lib/epam
+<PRE CLASS="verbatim"># chown root:ejabberd /var/lib/ejabberd/priv/bin/epam
+# chmod 4750 /var/lib/ejabberd/priv/bin/epam
 </PRE></LI><LI CLASS="li-itemize">Make sure you have the latest version of PAM installed on your system.
 Some old versions of PAM modules cause memory leaks. If you are not able to use the latest
 version, you can <TT>kill(1)</TT> <TT>epam</TT> process periodically to reduce its memory
@@ -1055,7 +1077,9 @@ shapers is like this:
 following syntax:
 </P><PRE CLASS="verbatim">  {maxrate, &lt;rate&gt;}
 </PRE><P>where <TT>&lt;rate&gt;</TT> stands for the maximum allowed incoming rate in bytes per
-second.</P><P>Examples:
+second.
+When a connection exceeds this limit, <TT>ejabberd</TT> stops reading from the socket 
+until the average rate is again below the allowed maximum.</P><P>Examples:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 To define a shaper named &#X2018;<TT>normal</TT>&#X2019; with traffic speed limited to
 1,000&#XA0;bytes/second:
@@ -1318,8 +1342,8 @@ yet.</P><!--TOC subsubsection Connection-->
 <H4 CLASS="subsubsection"><!--SEC ANCHOR -->Connection</H4><!--SEC END --><P>
 <A NAME="ldapconnection"></A></P><P>Parameters:
 </P><DL CLASS="description"><DT CLASS="dt-description">
-<B><TT>ldap_server</TT></B></DT><DD CLASS="dd-description"> IP address or dns name of your
-LDAP server. This option is required.
+<B><TT>ldap_servers</TT></B></DT><DD CLASS="dd-description"> List of IP addresses or DNS names of your
+LDAP servers. This option is required.
 </DD><DT CLASS="dt-description"><B><TT>ldap_port</TT></B></DT><DD CLASS="dd-description"> Port to connect to your LDAP server.
 The initial default value is&#XA0;389, so it is used when nothing is set into the 
 configuration file. 
@@ -1506,7 +1530,7 @@ all entries end with a comma:
 </P><P>The following table lists all modules included in <TT>ejabberd</TT>.</P><BLOCKQUOTE CLASS="table"><DIV CLASS="center"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
 <TABLE BORDER=1 CELLSPACING=0 CELLPADDING=1><TR><TD ALIGN=left NOWRAP>Module</TD><TD ALIGN=left NOWRAP>Feature</TD><TD ALIGN=left NOWRAP>Dependencies</TD><TD ALIGN=left NOWRAP>Needed for XMPP?</TD></TR>
 <TR><TD ALIGN=left NOWRAP><TT>mod_adhoc</TT></TD><TD ALIGN=left NOWRAP>Ad-Hoc Commands (<A HREF="http://www.xmpp.org/extensions/xep-0050.html">XEP-0050</A>)</TD><TD ALIGN=left NOWRAP>&nbsp;</TD><TD ALIGN=left NOWRAP>No</TD></TR>
-<TR><TD ALIGN=left NOWRAP><TT>mod_announce</TT></TD><TD ALIGN=left NOWRAP>Manage announcements</TD><TD ALIGN=left NOWRAP><TT>mod_adhoc</TT></TD><TD ALIGN=left NOWRAP>No</TD></TR>
+<TR><TD ALIGN=left NOWRAP><TT>mod_announce</TT></TD><TD ALIGN=left NOWRAP>Manage announcements</TD><TD ALIGN=left NOWRAP>recommends <TT>mod_adhoc</TT></TD><TD ALIGN=left NOWRAP>No</TD></TR>
 <TR><TD ALIGN=left NOWRAP><TT>mod_caps</TT></TD><TD ALIGN=left NOWRAP>Request and cache Entity Capabilities (<A HREF="http://www.xmpp.org/extensions/xep-0115.html">XEP-0115</A>)</TD><TD ALIGN=left NOWRAP>&nbsp;</TD><TD ALIGN=left NOWRAP>No</TD></TR>
 <TR><TD ALIGN=left NOWRAP><TT>mod_configure</TT></TD><TD ALIGN=left NOWRAP>Server configuration using Ad-Hoc</TD><TD ALIGN=left NOWRAP><TT>mod_adhoc</TT></TD><TD ALIGN=left NOWRAP>No</TD></TR>
 <TR><TD ALIGN=left NOWRAP><TT>mod_disco</TT></TD><TD ALIGN=left NOWRAP>Service Discovery (<A HREF="http://www.xmpp.org/extensions/xep-0030.html">XEP-0030</A>)</TD><TD ALIGN=left NOWRAP>&nbsp;</TD><TD ALIGN=left NOWRAP>No</TD></TR>
@@ -1621,18 +1645,21 @@ the "@HOST@" keyword must be used:
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc36">3.3.3</A>&#XA0;&#XA0;<TT>mod_announce</TT></H3><!--SEC END --><P>
 <A NAME="modannounce"></A>
 </P><P>This module enables configured users to broadcast announcements and to set
-the message of the day (MOTD). Configured users can do these actions with their
-Jabber client using Ad-hoc commands or by sending messages to specific JIDs. These JIDs are listed in
-next paragraph. The first JID in each entry will apply only to the virtual host
+the message of the day (MOTD). 
+Configured users can perform these actions with a
+Jabber client either using Ad-hoc commands
+or sending messages to specific JIDs.</P><P>The Ad-hoc commands are listed in the Server Discovery.
+For this feature to work, <TT>mod_adhoc</TT> must be enabled.</P><P>The specific JIDs where messages can be sent are listed bellow.
+The first JID in each entry will apply only to the specified virtual host
 <TT>example.org</TT>, while the JID between brackets will apply to all virtual
-hosts:
+hosts in ejabberd.
 </P><DL CLASS="description"><DT CLASS="dt-description">
 <B><TT>example.org/announce/all (example.org/announce/all-hosts/all)</TT></B></DT><DD CLASS="dd-description"> The
 message is sent to all registered users. If the user is online and connected
 to several resources, only the resource with the highest priority will receive
 the message. If the registered user is not connected, the message will be
 stored offline in assumption that offline storage
-(see section&#XA0;<A HREF="#modoffline">3.3.10</A>) is enabled.
+(see section&#XA0;<A HREF="#modoffline">3.3.12</A>) is enabled.
 </DD><DT CLASS="dt-description"><B><TT>example.org/announce/online (example.org/announce/all-hosts/online)</TT></B></DT><DD CLASS="dd-description">The
 message is sent to all connected users. If the user is online and connected
 to several resources, all resources will receive the message.
@@ -1658,6 +1685,7 @@ Only administrators can send announcements:
   {modules,
    [
     ...
+    {mod_adhoc, []},
     {mod_announce, [{access, announce}]},
     ...
    ]}.
@@ -1672,6 +1700,7 @@ Only administrators can send announcements:
   {modules,
    [
     ...
+    {mod_adhoc, []},
     {mod_announce, [{access, announce}]},
     ...
    ]}.
@@ -1739,8 +1768,91 @@ of them all?
     {mod_echo, [{host, "mirror.example.org"}]},
     ...
    ]}.
+</PRE><!--TOC subsection <TT>mod_http_bind</TT>-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc39">3.3.6</A>&#XA0;&#XA0;<TT>mod_http_bind</TT></H3><!--SEC END --><P>
+<A NAME="modhttpbind"></A>
+</P><P>This module implements XMPP over Bosh (formerly known as HTTP Binding)
+as outlined by <A HREF="http://www.xmpp.org/extensions/xep-0206.html">XEP-0206</A>.
+It extends ejabberd&#X2019;s built in HTTP service with a configurable
+resource at which this service will be hosted.</P><P>To use HTTP-Binding, enable the module:
+</P><PRE CLASS="verbatim">{modules,
+ [
+  ...
+  {mod_http_bind, []},
+  ...
+]}.
+</PRE><P>and add <CODE>http_bind</CODE> in the HTTP service. For example:
+</P><PRE CLASS="verbatim">{listen, 
+ [
+  ...
+  {5280, ejabberd_http, [
+                         http_bind,
+                         http_poll,
+                         web_admin
+                        ]
+  },
+  ...
+]}.
+</PRE><P>With this configuration, the module will serve the requests sent to 
+<CODE>http://example.org:5280/http-bind/</CODE>
+Remember that this page is not designed to be used by web browsers,
+it is used by Jabber clients that support XMPP over Bosh.</P><P>If you want to set the service in a different URI path or use a different module, 
+you can configure it manually using the option <CODE>request_handlers</CODE>. 
+For example:
+</P><PRE CLASS="verbatim">{listen, 
+ [
+  ...
+  {5280, ejabberd_http, [
+                         {request_handlers, [{["http-bind"], mod_http_bind}]},
+                         http_poll,
+                         web_admin
+                        ]
+  },
+  ...
+]}.
+</PRE><!--TOC subsection <TT>mod_http_fileserver</TT>-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc40">3.3.7</A>&#XA0;&#XA0;<TT>mod_http_fileserver</TT></H3><!--SEC END --><P>
+<A NAME="modhttpfileserver"></A>
+</P><P>This simple module serves files from the local disk over HTTP.</P><P>Options:
+</P><DL CLASS="description"><DT CLASS="dt-description">
+<B><TT>docroot</TT></B></DT><DD CLASS="dd-description"> 
+Directory to serve the files.
+</DD><DT CLASS="dt-description"><B><TT>accesslog</TT></B></DT><DD CLASS="dd-description"> 
+File to log accesses using an Apache-like format.
+No log will be recorded if this option is not specified.
+</DD></DL><P>This example configuration will serve the files from 
+the local directory <CODE>/var/www</CODE>
+in the address <CODE>http://example.org:5280/pub/archive/</CODE>.
+To use this module you must enable it:
+</P><PRE CLASS="verbatim">{modules,
+ [
+  ...
+  {mod_http_fileserver, [
+                         {docroot, "/var/www"}, 
+                         {accesslog, "/var/log/ejabberd/access.log"}
+                        ]
+  },
+  ...
+]}.
+</PRE><P>And define it as a handler in the HTTP service:
+</P><PRE CLASS="verbatim">{listen, 
+ [
+  ...
+  {5280, ejabberd_http, [
+                         ...
+                         {request_handlers, [
+                                             ...
+                                             {["pub", "archive"], mod_http_fileserver},
+                                             ...
+                                            ]
+                         },
+                         ...
+                        ]
+  },
+  ...
+]}.
 </PRE><!--TOC subsection <TT>mod_irc</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc39">3.3.6</A>&#XA0;&#XA0;<TT>mod_irc</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc41">3.3.8</A>&#XA0;&#XA0;<TT>mod_irc</TT></H3><!--SEC END --><P>
 <A NAME="modirc"></A>
 </P><P>This module is an IRC transport that can be used to join channels on IRC
 servers.</P><P>End user information:
@@ -1800,7 +1912,7 @@ our domains and on other servers.
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_last</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc40">3.3.7</A>&#XA0;&#XA0;<TT>mod_last</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc42">3.3.9</A>&#XA0;&#XA0;<TT>mod_last</TT></H3><!--SEC END --><P>
 <A NAME="modlast"></A>
 </P><P>This module adds support for Last Activity (<A HREF="http://www.xmpp.org/extensions/xep-0012.html">XEP-0012</A>). It can be used to
 discover when a disconnected user last accessed the server, to know when a
@@ -1810,7 +1922,7 @@ connected user was last active on the server, or to query the uptime of the
 <B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Last activity (<TT>jabber:iq:last</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC subsection <TT>mod_muc</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc41">3.3.8</A>&#XA0;&#XA0;<TT>mod_muc</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc43">3.3.10</A>&#XA0;&#XA0;<TT>mod_muc</TT></H3><!--SEC END --><P>
 <A NAME="modmuc"></A>
 </P><P>With this module enabled, your server will support Multi-User Chat
 (<A HREF="http://www.xmpp.org/extensions/xep-0045.html">XEP-0045</A>). End users will be able to join text conferences.</P><P>Some of the features of Multi-User Chat:
@@ -1988,7 +2100,7 @@ newly created chatrooms have by default those options.
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_muc_log</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc42">3.3.9</A>&#XA0;&#XA0;<TT>mod_muc_log</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc44">3.3.11</A>&#XA0;&#XA0;<TT>mod_muc_log</TT></H3><!--SEC END --><P>
 <A NAME="modmuclog"></A>
 </P><P>This module enables optional logging of Multi-User Chat (MUC) conversations to
 HTML. Once you enable this module, users can join a chatroom using a MUC capable
@@ -2096,7 +2208,7 @@ top link will be the default <CODE>&lt;a href="/"&gt;Home&lt;/a&gt;</CODE>.
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_offline</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc43">3.3.10</A>&#XA0;&#XA0;<TT>mod_offline</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc45">3.3.12</A>&#XA0;&#XA0;<TT>mod_offline</TT></H3><!--SEC END --><P>
 <A NAME="modoffline"></A>
 </P><P>This module implements offline message storage. This means that all messages
 sent to an offline user will be stored on the server until that user comes
@@ -2108,7 +2220,7 @@ is use to set a max number of offline messages per user (quota). Its
 value can be either <TT>infinity</TT> or a strictly positive
 integer. The default value is <TT>infinity</TT>.
 </DD></DL><!--TOC subsection <TT>mod_privacy</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc44">3.3.11</A>&#XA0;&#XA0;<TT>mod_privacy</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc46">3.3.13</A>&#XA0;&#XA0;<TT>mod_privacy</TT></H3><!--SEC END --><P>
 <A NAME="modprivacy"></A>
 </P><P>This module implements Blocking Communication (also known as Privacy Rules)
 as defined in section 10 from XMPP IM. If end users have support for it in
@@ -2137,7 +2249,7 @@ subscription type (or globally).
 <B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Blocking Communication (<TT>jabber:iq:privacy</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC subsection <TT>mod_private</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc45">3.3.12</A>&#XA0;&#XA0;<TT>mod_private</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc47">3.3.14</A>&#XA0;&#XA0;<TT>mod_private</TT></H3><!--SEC END --><P>
 <A NAME="modprivate"></A>
 </P><P>This module adds support for Private XML Storage (<A HREF="http://www.xmpp.org/extensions/xep-0049.html">XEP-0049</A>):
 </P><BLOCKQUOTE CLASS="quote">
@@ -2150,7 +2262,7 @@ of client-specific preferences; another is Bookmark Storage (<A HREF="http://www
 <B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Private XML Storage (<TT>jabber:iq:private</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC subsection <TT>mod_proxy65</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc46">3.3.13</A>&#XA0;&#XA0;<TT>mod_proxy65</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc48">3.3.15</A>&#XA0;&#XA0;<TT>mod_proxy65</TT></H3><!--SEC END --><P>
 <A NAME="modproxy"></A>
 </P><P>This module implements SOCKS5 Bytestreams (<A HREF="http://www.xmpp.org/extensions/xep-0065.html">XEP-0065</A>).
 It allows <TT>ejabberd</TT> to act as a file transfer proxy between two
@@ -2206,7 +2318,7 @@ The simpliest configuration of the module:
     ...
   ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_pubsub</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc47">3.3.14</A>&#XA0;&#XA0;<TT>mod_pubsub</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc49">3.3.16</A>&#XA0;&#XA0;<TT>mod_pubsub</TT></H3><!--SEC END --><P>
 <A NAME="modpubsub"></A>
 </P><P>This module offers a Publish-Subscribe Service (<A HREF="http://www.xmpp.org/extensions/xep-0060.html">XEP-0060</A>).
 The functionality in <TT>mod_pubsub</TT> can be extended using plugins.
@@ -2237,7 +2349,7 @@ and is shared by all node plugins.
     ...
    ]}.
 </PRE><!--TOC subsection <TT>mod_register</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc48">3.3.15</A>&#XA0;&#XA0;<TT>mod_register</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc50">3.3.17</A>&#XA0;&#XA0;<TT>mod_register</TT></H3><!--SEC END --><P>
 <A NAME="modregister"></A>
 </P><P>This module adds support for In-Band Registration (<A HREF="http://www.xmpp.org/extensions/xep-0077.html">XEP-0077</A>). This protocol
 enables end users to use a Jabber client to:
@@ -2299,14 +2411,14 @@ example all In-Band Registration functionality is disabled:
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_roster</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc49">3.3.16</A>&#XA0;&#XA0;<TT>mod_roster</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc51">3.3.18</A>&#XA0;&#XA0;<TT>mod_roster</TT></H3><!--SEC END --><P>
 <A NAME="modroster"></A>
 </P><P>This module implements roster management as defined in <A HREF="http://www.xmpp.org/specs/rfc3921.html#roster">RFC 3921: XMPP IM</A>.</P><P>Options:
 </P><DL CLASS="description"><DT CLASS="dt-description">
 <B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Roster Management (<TT>jabber:iq:roster</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC subsection <TT>mod_service_log</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc50">3.3.17</A>&#XA0;&#XA0;<TT>mod_service_log</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc52">3.3.19</A>&#XA0;&#XA0;<TT>mod_service_log</TT></H3><!--SEC END --><P>
 <A NAME="modservicelog"></A>
 </P><P>This module adds support for logging end user packets via a Jabber message
 auditing service such as
@@ -2337,7 +2449,7 @@ To log all end user packets to the Bandersnatch service running on
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_shared_roster</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc51">3.3.18</A>&#XA0;&#XA0;<TT>mod_shared_roster</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc53">3.3.20</A>&#XA0;&#XA0;<TT>mod_shared_roster</TT></H3><!--SEC END --><P>
 <A NAME="modsharedroster"></A>
 </P><P>This module enables you to create shared roster groups. This means that you can
 create groups of people that can see members from (other) groups in their
@@ -2413,7 +2525,7 @@ roster groups as shown in the following table:
 </TABLE>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></DIV></BLOCKQUOTE>
 </LI></UL><!--TOC subsection <TT>mod_stats</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc52">3.3.19</A>&#XA0;&#XA0;<TT>mod_stats</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc54">3.3.21</A>&#XA0;&#XA0;<TT>mod_stats</TT></H3><!--SEC END --><P>
 <A NAME="modstats"></A>
 </P><P>This module adds support for Statistics Gathering (<A HREF="http://www.xmpp.org/extensions/xep-0039.html">XEP-0039</A>). This protocol
 allows you to retrieve next statistics from your <TT>ejabberd</TT> deployment:
@@ -2446,7 +2558,7 @@ by sending:
   &lt;/query&gt;
 &lt;/iq&gt;
 </PRE></LI></UL><!--TOC subsection <TT>mod_time</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc53">3.3.20</A>&#XA0;&#XA0;<TT>mod_time</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc55">3.3.22</A>&#XA0;&#XA0;<TT>mod_time</TT></H3><!--SEC END --><P>
 <A NAME="modtime"></A>
 </P><P>This module features support for Entity Time (<A HREF="http://www.xmpp.org/extensions/xep-0090.html">XEP-0090</A>). By using this XEP,
 you are able to discover the time at another entity&#X2019;s location.</P><P>Options:
@@ -2454,7 +2566,7 @@ you are able to discover the time at another entity&#X2019;s location.</P><P>Opt
 <B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Entity Time (<TT>jabber:iq:time</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC subsection <TT>mod_vcard</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc54">3.3.21</A>&#XA0;&#XA0;<TT>mod_vcard</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc56">3.3.23</A>&#XA0;&#XA0;<TT>mod_vcard</TT></H3><!--SEC END --><P>
 <A NAME="modvcard"></A>
 </P><P>This module allows end users to store and retrieve their vCard, and to retrieve
 other users vCards, as defined in vcard-temp (<A HREF="http://www.xmpp.org/extensions/xep-0054.html">XEP-0054</A>). The module also
@@ -2484,6 +2596,7 @@ users who added some information to their vCard. The default value is
 </DD><DT CLASS="dt-description"><B><TT>search_all_hosts</TT></B></DT><DD CLASS="dd-description">If this option is set
 to <TT>true</TT>, search operations will apply to all virtual hosts. Otherwise
 only the current host will be searched. The default value is <TT>true</TT>.
+This option is available in <TT>mod_vcard</TT>, but not available in <TT>mod_vcard_odbc</TT>.
 </DD></DL><P>Examples:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
 In this first situation, search results are limited to twenty items,
@@ -2509,18 +2622,18 @@ and that all virtual hosts will be searched instead of only the current one:
     ...
    ]}.
 </PRE></LI></UL><!--TOC subsection <TT>mod_vcard_ldap</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc55">3.3.22</A>&#XA0;&#XA0;<TT>mod_vcard_ldap</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc57">3.3.24</A>&#XA0;&#XA0;<TT>mod_vcard_ldap</TT></H3><!--SEC END --><P>
 <A NAME="modvcardldap"></A>
 </P><P><TT>ejabberd</TT> can map LDAP attributes to vCard fields. This behaviour is
 implemented in the <TT>mod_vcard_ldap</TT> module. This module does not depend on the
-authentication method (see&#XA0;<A HREF="#ldapauth">3.2.5</A>). The <TT>mod_vcard_ldap</TT> module has
+authentication method (see&#XA0;<A HREF="#ldapauth">3.2.5</A>).</P><P>The <TT>mod_vcard_ldap</TT> module has
 its own optional parameters. The first group of parameters has the same
 meaning as the top-level LDAP parameters to set the authentication method:
 <TT>ldap_servers</TT>, <TT>ldap_port</TT>, <TT>ldap_rootdn</TT>,
 <TT>ldap_password</TT>, <TT>ldap_base</TT>, <TT>ldap_uids</TT>, and
 <TT>ldap_filter</TT>. See section&#XA0;<A HREF="#ldapauth">3.2.5</A> for detailed information
 about these options. If one of these options is not set, <TT>ejabberd</TT> will look
-for the top-level option with the same name. The second group of parameters
+for the top-level option with the same name.</P><P>The second group of parameters
 consists of the following <TT>mod_vcard_ldap</TT>-specific options:</P><DL CLASS="description"><DT CLASS="dt-description">
 
 <B><TT>host</TT></B></DT><DD CLASS="dd-description">  This option defines the Jabber ID of the
@@ -2535,6 +2648,9 @@ functionality is enabled (value: <TT>true</TT>) or disabled (value:
 <TT>false</TT>). If disabled, the option <TT>host</TT> will be ignored and the
 Jabber User Directory service will not appear in the Service Discovery item
 list. The default value is <TT>true</TT>.
+</DD><DT CLASS="dt-description"><B><TT>matches</TT></B></DT><DD CLASS="dd-description">With this option, the number of reported
+search results can be limited. If the option&#X2019;s value is set to <TT>infinity</TT>,
+all search results are reported. The default value is <TT>30</TT>.
 </DD><DT CLASS="dt-description"><B><TT>ldap_vcard_map</TT></B></DT><DD CLASS="dd-description">With this option you can
 set the table that maps LDAP attributes to vCard fields. The format is:
 <TT>[</TT><TT>Name_of_vCard_field, Pattern, List_of_LDAP_attributes</TT><TT>, ...]</TT>.
@@ -2546,7 +2662,7 @@ attributes. The pattern variables <TT>"%s"</TT> will be sequentially replaced
 with the values of LDAP attributes from <TT>List_of_LDAP_attributes</TT>,
 <TT>"%u"</TT> will be replaced with the user part of a JID, and <TT>"%d"</TT>
 will be replaced with the domain part of a JID. The default is:
-<PRE CLASS="verbatim">  [{"NICK", "%u", []},
+<PRE CLASS="verbatim">  [{"NICKNAME", "%u", []},
    {"FN", "%s", ["displayName"]},
    {"LAST", "%s", ["sn"]},
    {"FIRST", "%s", ["givenName"]},
@@ -2595,7 +2711,7 @@ is:
    {"Given Name", "FIRST"},
    {"Middle Name", "MIDDLE"},
    {"Family Name", "LAST"},
-   {"Nickname", "NICK"},
+   {"Nickname", "NICKNAME"},
    {"Birthday", "BDAY"},
    {"Country", "CTRY"},
    {"City", "LOCALITY"},
@@ -2636,7 +2752,7 @@ Also we want users to search each other. Let&#X2019;s see how we can set it up:<
       {ldap_filter, ""},
       %% Now we want to define vCard pattern
       {ldap_vcard_map,
-       [{"NICK", "%u", []}, % just use user's part of JID as his nickname
+       [{"NICKNAME", "%u", []}, % just use user's part of JID as his nickname
         {"FIRST", "%s", ["givenName"]},
         {"LAST", "%s", ["sn"]},
         {"FN", "%s, %s", ["sn", "givenName"]}, % example: "Smith, John"
@@ -2653,7 +2769,7 @@ Also we want users to search each other. Let&#X2019;s see how we can set it up:<
       %% Note that JID is always returned with search results
       {ldap_search_reported,
        [{"Full Name", "FN"},
-        {"Nickname", "NICK"},
+        {"Nickname", "NICKNAME"},
         {"Birthday", "BDAY"}]}
     ]}
     ...
@@ -2661,7 +2777,7 @@ Also we want users to search each other. Let&#X2019;s see how we can set it up:<
 </PRE><P>Note that <TT>mod_vcard_ldap</TT> module checks an existence of the user before
 searching his info in LDAP.</P></LI><LI CLASS="li-itemize"><TT>ldap_vcard_map</TT> example:
 <PRE CLASS="verbatim">  {ldap_vcard_map,
-   [{"NICK", "%u", []},
+   [{"NICKNAME", "%u", []},
     {"FN", "%s", ["displayName"]},
     {"CTRY", "Russia", []},
     {"EMAIL", "%u@%d", []},
@@ -2678,10 +2794,10 @@ searching his info in LDAP.</P></LI><LI CLASS="li-itemize"><TT>ldap_vcard_map</T
    [{"Full Name", "FN"},
     {"Email", "EMAIL"},
     {"Birthday", "BDAY"},
-    {"Nickname", "NICK"}
+    {"Nickname", "NICKNAME"}
    ]},
 </PRE></LI></UL><!--TOC subsection <TT>mod_version</TT>-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc56">3.3.23</A>&#XA0;&#XA0;<TT>mod_version</TT></H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc58">3.3.25</A>&#XA0;&#XA0;<TT>mod_version</TT></H3><!--SEC END --><P>
 <A NAME="modversion"></A>
 </P><P>This module implements Software Version (<A HREF="http://www.xmpp.org/extensions/xep-0092.html">XEP-0092</A>). Consequently, it
 answers <TT>ejabberd</TT>&#X2019;s version when queried.</P><P>Options:
@@ -2691,10 +2807,10 @@ The default value is <TT>true</TT>.
 </DD><DT CLASS="dt-description"><B><TT>iqdisc</TT></B></DT><DD CLASS="dd-description"> This specifies 
 the processing discipline for Software Version (<TT>jabber:iq:version</TT>) IQ queries (see section&#XA0;<A HREF="#modiqdiscoption">3.3.2</A>).
 </DD></DL><!--TOC chapter Managing an <TT>ejabberd</TT> server-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc57">Chapter&#XA0;4</A>&#XA0;&#XA0;Managing an <TT>ejabberd</TT> server</H1><!--SEC END --><!--TOC section <TT>ejabberdctl</TT>-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc58">4.1</A>&#XA0;&#XA0;<TT>ejabberdctl</TT></H2><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc59">Chapter&#XA0;4</A>&#XA0;&#XA0;Managing an <TT>ejabberd</TT> server</H1><!--SEC END --><!--TOC section <TT>ejabberdctl</TT>-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc60">4.1</A>&#XA0;&#XA0;<TT>ejabberdctl</TT></H2><!--SEC END --><P>
 <A NAME="ejabberdctl"></A></P><!--TOC subsection Commands-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc59">4.1.1</A>&#XA0;&#XA0;Commands</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc61">4.1.1</A>&#XA0;&#XA0;Commands</H3><!--SEC END --><P>
 <A NAME="commands"></A></P><P>The <TT>ejabberdctl</TT> command line script allows to start, stop and perform 
 many other administrative tasks in a local or remote <TT>ejabberd</TT> server.</P><P>When <TT>ejabberdctl</TT> is executed without any parameter,
 it displays the available options. If there isn&#X2019;t an <TT>ejabberd</TT> server running, 
@@ -2722,7 +2838,7 @@ is very high.
 </DD></DL><P>The <TT>ejabberdctl</TT> script also allows the argument <TT>--node NODENAME</TT>.
 This allows to administer a remote node.</P><P>The <TT>ejabberdctl</TT> administration script can be configured in the file ejabberdctl.cfg.
 This file provides detailed information about each configurable option.</P><!--TOC subsection Erlang runtime system-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc60">4.1.2</A>&#XA0;&#XA0;Erlang runtime system</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc62">4.1.2</A>&#XA0;&#XA0;Erlang runtime system</H3><!--SEC END --><P>
 <A NAME="erlangconfiguration"></A></P><P><TT>ejabberd</TT> is an Erlang/OTP application that runs inside an Erlang runtime system.
 This system is configured using environment variables and command line parameters.
 The <TT>ejabberdctl</TT> administration script uses many of those possibilities.
@@ -2786,7 +2902,7 @@ Starts the Erlang system detached from the system console.
 </DD></DL><P>
 Note that some characters need to be escaped when used in shell scripts, for instance <CODE>"</CODE> and <CODE>{}</CODE>.
 You can find other options in the Erlang manual page (<TT>erl -man erl</TT>).</P><!--TOC section Web Admin-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc61">4.2</A>&#XA0;&#XA0;Web Admin</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc63">4.2</A>&#XA0;&#XA0;Web Admin</H2><!--SEC END --><P>
 <A NAME="webadmin"></A>
 </P><P>The <TT>ejabberd</TT> Web Admin allows to administer most of <TT>ejabberd</TT> using a web browser.</P><P>This feature is enabled by default:
 a <TT>ejabberd_http</TT> listener with the option <TT>web_admin</TT> (see
@@ -2848,14 +2964,14 @@ web browser to <CODE>https://192.168.1.1:5280/admin/</CODE>:
    ]
   }.
 </PRE></LI></UL><!--TOC section Ad-hoc Commands-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc62">4.3</A>&#XA0;&#XA0;Ad-hoc Commands</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc64">4.3</A>&#XA0;&#XA0;Ad-hoc Commands</H2><!--SEC END --><P>
 <A NAME="adhoccommands"></A></P><P>If you enable <TT>mod_configure</TT> and <TT>mod_adhoc</TT>,
 you can perform several administrative tasks in <TT>ejabberd</TT>
 with a Jabber client.
 The client must support Ad-Hoc Commands (<A HREF="http://www.xmpp.org/extensions/xep-0050.html">XEP-0050</A>),
 and you must login in the Jabber server with
 an account with proper privileges.</P><!--TOC section Change Computer Hostname-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc63">4.4</A>&#XA0;&#XA0;Change Computer Hostname</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc65">4.4</A>&#XA0;&#XA0;Change Computer Hostname</H2><!--SEC END --><P>
 <A NAME="changeerlangnodename"></A></P><P><TT>ejabberd</TT> uses the distributed Mnesia database. 
 Being distributed, Mnesia enforces consistency of its file,
 so it stores the name of the Erlang node in it.
@@ -2872,8 +2988,8 @@ you must follow these instructions:
 	For example:
 <PRE CLASS="verbatim">ejabberdctl restore /tmp/ejabberd-oldhost.backup
 </PRE></LI></OL><!--TOC chapter Securing <TT>ejabberd</TT>-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc64">Chapter&#XA0;5</A>&#XA0;&#XA0;Securing <TT>ejabberd</TT></H1><!--SEC END --><!--TOC section Firewall Settings-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc65">5.1</A>&#XA0;&#XA0;Firewall Settings</H2><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc66">Chapter&#XA0;5</A>&#XA0;&#XA0;Securing <TT>ejabberd</TT></H1><!--SEC END --><!--TOC section Firewall Settings-->
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc67">5.1</A>&#XA0;&#XA0;Firewall Settings</H2><!--SEC END --><P>
 <A NAME="firewall"></A>
 </P><P>You need to take the following TCP ports in mind when configuring your firewall:
 </P><BLOCKQUOTE CLASS="table"><DIV CLASS="center"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
@@ -2885,7 +3001,7 @@ you must follow these instructions:
 <TR><TD ALIGN=left NOWRAP>port range</TD><TD ALIGN=left NOWRAP>Used for connections between Erlang nodes. This range is configurable.</TD></TR>
 </TABLE>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></DIV></BLOCKQUOTE><!--TOC section epmd -->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc66">5.2</A>&#XA0;&#XA0;epmd </H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc68">5.2</A>&#XA0;&#XA0;epmd </H2><!--SEC END --><P>
 <A NAME="epmd"></A></P><P><A HREF="http://www.erlang.org/doc/man/epmd.html">epmd (Erlang Port Mapper Daemon)</A>
 is a small name server included in Erlang/OTP 
 and used by Erlang programs when establishing distributed Erlang communications. 
@@ -2910,7 +3026,7 @@ The ports used in this case are random.
 You can limit the range of ports when starting Erlang with a command-line parameter, for example:
 </P><PRE CLASS="verbatim">erl ... -kernel inet_dist_listen_min 4370 inet_dist_listen_max 4375
 </PRE><!--TOC section Erlang Cookie-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc67">5.3</A>&#XA0;&#XA0;Erlang Cookie</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc69">5.3</A>&#XA0;&#XA0;Erlang Cookie</H2><!--SEC END --><P>
 <A NAME="cookie"></A></P><P>The Erlang cookie is a string with numbers and letters. 
 An Erlang node reads the cookie at startup from the command-line parameter <TT>-setcookie</TT>
 or from a cookie file.
@@ -2924,7 +3040,7 @@ to prevent unauthorized access or intrusion to an Erlang node.
 The communication between Erlang nodes are not encrypted,
 so the cookie could be read sniffing the traffic on the network.
 The recommended way to secure the Erlang node is to block the port 4369.</P><!--TOC section Erlang node name-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc68">5.4</A>&#XA0;&#XA0;Erlang node name</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc70">5.4</A>&#XA0;&#XA0;Erlang node name</H2><!--SEC END --><P>
 <A NAME="nodename"></A></P><P>An Erlang node may have a node name.
 The name can be short (if indicated with the command-line parameter <TT>-sname</TT>) 
 or long (if indicated with the parameter <TT>-name</TT>). 
@@ -2934,10 +3050,10 @@ However, it is not ultimately effective to prevent access to the Erlang node,
 because it may be possible to fake the fact that you are on another network 
 using a modified version of Erlang <TT>epmd</TT>.
 The recommended way to secure the Erlang node is to block the port 4369.</P><!--TOC chapter Clustering-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc69">Chapter&#XA0;6</A>&#XA0;&#XA0;Clustering</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc71">Chapter&#XA0;6</A>&#XA0;&#XA0;Clustering</H1><!--SEC END --><P>
 <A NAME="clustering"></A>
 </P><!--TOC section How it Works-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc70">6.1</A>&#XA0;&#XA0;How it Works</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc72">6.1</A>&#XA0;&#XA0;How it Works</H2><!--SEC END --><P>
 <A NAME="howitworks"></A>
 </P><P>A Jabber domain is served by one or more <TT>ejabberd</TT> nodes. These nodes can
 be run on different machines that are connected via a network. They all
@@ -2952,33 +3068,33 @@ router,
 </LI><LI CLASS="li-itemize">session manager,
 </LI><LI CLASS="li-itemize">s2s manager.
 </LI></UL><!--TOC subsection Router-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc71">6.1.1</A>&#XA0;&#XA0;Router</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">6.1.1</A>&#XA0;&#XA0;Router</H3><!--SEC END --><P>
 <A NAME="router"></A>
 </P><P>This module is the main router of Jabber packets on each node. It
 routes them based on their destination&#X2019;s domains. It uses a global
 routing table. The domain of the packet&#X2019;s destination is searched in the
 routing table, and if it is found, the packet is routed to the
 appropriate process. If not, it is sent to the s2s manager.</P><!--TOC subsection Local Router-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc72">6.1.2</A>&#XA0;&#XA0;Local Router</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">6.1.2</A>&#XA0;&#XA0;Local Router</H3><!--SEC END --><P>
 <A NAME="localrouter"></A>
 </P><P>This module routes packets which have a destination domain equal to
 one of this server&#X2019;s host names. If the destination JID has a non-empty user
 part, it is routed to the session manager, otherwise it is processed depending
 on its content.</P><!--TOC subsection Session Manager-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc73">6.1.3</A>&#XA0;&#XA0;Session Manager</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc75">6.1.3</A>&#XA0;&#XA0;Session Manager</H3><!--SEC END --><P>
 <A NAME="sessionmanager"></A>
 </P><P>This module routes packets to local users. It looks up to which user
 resource a packet must be sent via a presence table. Then the packet is
 either routed to the appropriate c2s process, or stored in offline
 storage, or bounced back.</P><!--TOC subsection s2s Manager-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc74">6.1.4</A>&#XA0;&#XA0;s2s Manager</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc76">6.1.4</A>&#XA0;&#XA0;s2s Manager</H3><!--SEC END --><P>
 <A NAME="s2smanager"></A>
 </P><P>This module routes packets to other Jabber servers. First, it
 checks if an opened s2s connection from the domain of the packet&#X2019;s
 source to the domain of the packet&#X2019;s destination exists. If that is the case,
 the s2s manager routes the packet to the process
 serving this connection, otherwise a new connection is opened.</P><!--TOC section Clustering Setup-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc75">6.2</A>&#XA0;&#XA0;Clustering Setup</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc77">6.2</A>&#XA0;&#XA0;Clustering Setup</H2><!--SEC END --><P>
 <A NAME="cluster"></A>
 </P><P>Suppose you already configured <TT>ejabberd</TT> on one machine named (<TT>first</TT>),
 and you need to setup another one to make an <TT>ejabberd</TT> cluster. Then do
@@ -3013,11 +3129,11 @@ and &#X2018;<CODE>access</CODE>&#X2019; options &#X2014; they will be taken from
 enabled only on one machine in the cluster).
 </LI></OL><P>You can repeat these steps for other machines supposed to serve this
 domain.</P><!--TOC section Service Load-Balancing-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc76">6.3</A>&#XA0;&#XA0;Service Load-Balancing</H2><!--SEC END --><!--TOC subsection Components Load-Balancing-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc77">6.3.1</A>&#XA0;&#XA0;Components Load-Balancing</H3><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc78">6.3</A>&#XA0;&#XA0;Service Load-Balancing</H2><!--SEC END --><!--TOC subsection Components Load-Balancing-->
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc79">6.3.1</A>&#XA0;&#XA0;Components Load-Balancing</H3><!--SEC END --><P>
 <A NAME="componentlb"></A>
 </P><!--TOC subsection Domain Load-Balancing Algorithm-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc78">6.3.2</A>&#XA0;&#XA0;Domain Load-Balancing Algorithm</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc80">6.3.2</A>&#XA0;&#XA0;Domain Load-Balancing Algorithm</H3><!--SEC END --><P>
 <A NAME="domainlb"></A>
 </P><P><TT>ejabberd</TT> includes an algorithm to load balance the components that are plugged on an <TT>ejabberd</TT> cluster. It means that you can plug one or several instances of the same component on each <TT>ejabberd</TT> cluster and that the traffic will be automatically distributed.</P><P>The default distribution algorithm try to deliver to a local instance of a component. If several local instances are available, one instance is chosen randomly. If no instance is available locally, one instance is chosen randomly among the remote component instances.</P><P>If you need a different behaviour, you can change the load balancing behaviour with the option <TT>domain_balancing</TT>. The syntax of the option is the following:</P><PRE CLASS="verbatim"> {domain_balancing, "component.example.com", &lt;balancing_criterium&gt;}.                                   
 </PRE><P>Several balancing criteria are available:
@@ -3027,15 +3143,15 @@ domain.</P><!--TOC section Service Load-Balancing-->
 </LI><LI CLASS="li-itemize"><TT>bare_destination</TT>: the bare JID (without resource) of the packet <TT>to</TT> attribute is used.
 </LI><LI CLASS="li-itemize"><TT>bare_source</TT>: the bare JID (without resource) of the packet <TT>from</TT> attribute is used.
 </LI></UL><P>If the value corresponding to the criteria is the same, the same component instance in the cluster will be used.</P><!--TOC subsection Load-Balancing Buckets-->
-<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc79">6.3.3</A>&#XA0;&#XA0;Load-Balancing Buckets</H3><!--SEC END --><P>
+<H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc81">6.3.3</A>&#XA0;&#XA0;Load-Balancing Buckets</H3><!--SEC END --><P>
 <A NAME="lbbuckets"></A>
 </P><P>When there is a risk of failure for a given component, domain balancing can cause service trouble. If one component is failing the service will not work correctly unless the sessions are rebalanced.</P><P>In this case, it is best to limit the problem to the sessions handled by the failing component. This is what the <TT>domain_balancing_component_number</TT> option does, making the load balancing algorithm not dynamic, but sticky on a fix number of component instances.</P><P>The syntax is the following:
 </P><PRE CLASS="verbatim">    {domain_balancing_component_number, "component.example.com", N}
 </PRE><!--TOC chapter Debugging-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc80">Chapter&#XA0;7</A>&#XA0;&#XA0;Debugging</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc82">Chapter&#XA0;7</A>&#XA0;&#XA0;Debugging</H1><!--SEC END --><P>
 <A NAME="debugging"></A>
 </P><!--TOC section Watchdog Alerts-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc81">7.1</A>&#XA0;&#XA0;Watchdog Alerts</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc83">7.1</A>&#XA0;&#XA0;Watchdog Alerts</H2><!--SEC END --><P>
 <A NAME="watchdog"></A>
 </P><P><TT>ejabberd</TT> includes a watchdog mechanism.
 If a process in the <TT>ejabberd</TT> server consumes too much memory,
@@ -3045,7 +3161,7 @@ a message is sent to the Jabber accounts defined with the option
 Example configuration:
 </P><PRE CLASS="verbatim">{watchdog_admins, ["admin2@localhost", "admin2@example.org"]}.
 </PRE><!--TOC section Log Files-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc82">7.2</A>&#XA0;&#XA0;Log Files</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc84">7.2</A>&#XA0;&#XA0;Log Files</H2><!--SEC END --><P>
 <A NAME="logfiles"></A></P><P>An <TT>ejabberd</TT> node writes two log files:
 </P><DL CLASS="description"><DT CLASS="dt-description">
 	<B><TT>ejabberd.log</TT></B></DT><DD CLASS="dd-description"> is the ejabberd service log, with the messages reported by <TT>ejabberd</TT> code
@@ -3063,13 +3179,13 @@ The possible levels are:
 For example, the default configuration is:
 </P><PRE CLASS="verbatim">{loglevel, 4}.
 </PRE><!--TOC section Debug Console-->
-<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc83">7.3</A>&#XA0;&#XA0;Debug Console</H2><!--SEC END --><P>
+<H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc85">7.3</A>&#XA0;&#XA0;Debug Console</H2><!--SEC END --><P>
 <A NAME="debugconsole"></A></P><P>The Debug Console is an Erlang shell attached to an already running <TT>ejabberd</TT> server.
 With this Erlang shell, an experienced administrator can perform complex tasks.</P><P>This shell gives complete control over the <TT>ejabberd</TT> server,
 so it is important to use it with extremely care.
 There are some simple and safe examples in the article 
 <A HREF="http://www.ejabberd.im/interconnect-erl-nodes">Interconnecting Erlang Nodes</A></P><P>To exit the shell, close the window or press the keys: control+c control+c.</P><!--TOC chapter Internationalization and Localization-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc84">Appendix&#XA0;A</A>&#XA0;&#XA0;Internationalization and Localization</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc86">Appendix&#XA0;A</A>&#XA0;&#XA0;Internationalization and Localization</H1><!--SEC END --><P>
 <A NAME="i18nl10n"></A>
 </P><P>All built-in modules support the <TT>xml:lang</TT> attribute inside IQ queries.
 Figure&#XA0;<A HREF="#fig:discorus">A.1</A>, for example, shows the reply to the following query:
@@ -3087,21 +3203,20 @@ Figure&#XA0;<A HREF="#fig:discorus">A.1</A>, for example, shows the reply to the
 <DIV CLASS="caption"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD VALIGN=top ALIGN=left>Figure A.1: Service Discovery when <TT>xml:lang=&#X2019;ru&#X2019;</TT></TD></TR>
 </TABLE></DIV>
 <A NAME="fig:discorus"></A>
-<DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></DIV></BLOCKQUOTE><P>The Web Admin also supports the <CODE>Accept-Language</CODE> HTTP header (compare
-figure&#XA0;<A HREF="#fig:webadmmainru">A.2</A> with figure&#XA0;<A HREF="#fig:webadmmain">4.1</A>)</P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
+<DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></DIV></BLOCKQUOTE><P>The Web Admin also supports the <CODE>Accept-Language</CODE> HTTP header.</P><BLOCKQUOTE CLASS="figure"><DIV CLASS="center"><DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV>
 
 <IMG SRC="webadmmainru.png" ALT="webadmmainru.png">
 
 
-<DIV CLASS="caption"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD VALIGN=top ALIGN=left>Figure A.2: Top page from the Web Admin with HTTP header
-&#X2018;Accept-Language: ru&#X2019;</TD></TR>
+<DIV CLASS="caption"><TABLE CELLSPACING=6 CELLPADDING=0><TR><TD VALIGN=top ALIGN=left>Figure A.2: Web Admin showing a virtual host when the web browser provides the 
+HTTP header &#X2018;Accept-Language: ru&#X2019;</TD></TR>
 </TABLE></DIV>
 <A NAME="fig:webadmmainru"></A>
 <DIV CLASS="center"><HR WIDTH="80%" SIZE=2></DIV></DIV></BLOCKQUOTE><!--TOC chapter Release Notes-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc85">Appendix&#XA0;B</A>&#XA0;&#XA0;Release Notes</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc87">Appendix&#XA0;B</A>&#XA0;&#XA0;Release Notes</H1><!--SEC END --><P>
 <A NAME="releasenotes"></A>
 </P><P>Release notes are available from <A HREF="http://www.process-one.net/en/ejabberd/release_notes/">ejabberd Home Page</A></P><!--TOC chapter Acknowledgements-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc86">Appendix&#XA0;C</A>&#XA0;&#XA0;Acknowledgements</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc88">Appendix&#XA0;C</A>&#XA0;&#XA0;Acknowledgements</H1><!--SEC END --><P>
 <A NAME="acknowledgements"></A>
 Thanks to all people who contributed to this guide:
 </P><UL CLASS="itemize"><LI CLASS="li-itemize">
@@ -3110,12 +3225,12 @@ Alexey Shchepin (<A HREF="xmpp:aleksey@jabber.ru"><TT>xmpp:aleksey@jabber.ru</TT
 </LI><LI CLASS="li-itemize">Evgeniy Khramtsov (<A HREF="xmpp:xram@jabber.ru"><TT>xmpp:xram@jabber.ru</TT></A>)
 </LI><LI CLASS="li-itemize">Florian Zumbiehl (<A HREF="xmpp:florz@florz.de"><TT>xmpp:florz@florz.de</TT></A>)
 </LI><LI CLASS="li-itemize">Michael Grigutsch (<A HREF="xmpp:migri@jabber.i-pobox.net"><TT>xmpp:migri@jabber.i-pobox.net</TT></A>)
-</LI><LI CLASS="li-itemize">Mickael Remond (<A HREF="xmpp:mremond@erlang-projects.org"><TT>xmpp:mremond@erlang-projects.org</TT></A>)
-</LI><LI CLASS="li-itemize">Sander Devrieze (<A HREF="xmpp:sander@devrieze.dyndns.org"><TT>xmpp:sander@devrieze.dyndns.org</TT></A>)
+</LI><LI CLASS="li-itemize">Mickael Remond (<A HREF="xmpp:mremond@process-one.net"><TT>xmpp:mremond@process-one.net</TT></A>)
+</LI><LI CLASS="li-itemize">Sander Devrieze (<A HREF="xmpp:s.devrieze@gmail.com"><TT>xmpp:s.devrieze@gmail.com</TT></A>)
 </LI><LI CLASS="li-itemize">Sergei Golovan (<A HREF="xmpp:sgolovan@nes.ru"><TT>xmpp:sgolovan@nes.ru</TT></A>)
 </LI><LI CLASS="li-itemize">Vsevolod Pelipas (<A HREF="xmpp:vsevoload@jabber.ru"><TT>xmpp:vsevoload@jabber.ru</TT></A>)
 </LI></UL><!--TOC chapter Copyright Information-->
-<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc87">Appendix&#XA0;D</A>&#XA0;&#XA0;Copyright Information</H1><!--SEC END --><P>
+<H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc89">Appendix&#XA0;D</A>&#XA0;&#XA0;Copyright Information</H1><!--SEC END --><P>
 <A NAME="copyright"></A></P><P>Ejabberd Installation and Operation Guide.<BR>
 Copyright &#XA9; 2003 &#X2014; 2008 Process-one</P><P>This document is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

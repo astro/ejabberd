@@ -246,6 +246,7 @@ execute_transaction(State, F, NRestarts) ->
 %% part of init/1
 %% Open an ODBC database connection
 odbc_connect(SQLServer) ->
+    application:start(odbc),
     case odbc:connect(SQLServer,[{scrollable_cursors, off}]) of
 	{ok, Ref} ->
 	    erlang:monitor(process, Ref),
@@ -266,6 +267,7 @@ odbc_connect(SQLServer) ->
 pgsql_connect(Server, Port, DB, Username, Password) ->
     case pgsql:connect(Server, DB, Username, Password, Port) of
 	{ok, Ref} ->
+	    erlang:monitor(process, Ref),
 	    {ok, #state{db_ref = Ref, db_type = pgsql}};
 	{error, Reason} ->
 	    ?ERROR_MSG("PostgreSQL connection failed: ~p~n", [Reason]),
