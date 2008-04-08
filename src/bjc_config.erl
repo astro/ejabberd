@@ -1,7 +1,8 @@
 -module(bjc_config).
 -author("bjc@kublai.com").
 
--export([start/0, load_file/1, get_option/2]).
+-export([start/0, load_file/1, get_hosts/0, get_option/2]).
+-include_lib("stdlib/include/qlc.hrl").
 -include("ejabberd.hrl").
 
 -define(TABLE_PREFIX, "config_").
@@ -10,7 +11,6 @@
 -record(load_info, {includes = sets:new(), terms = [], cwd}).
 
 start() ->
-    ok = debug_start(),
     Config = case application:get_env(config) of
 		 {ok, Path} -> Path;
 		 undefined -> 
@@ -28,34 +28,46 @@ load_file(Filename) ->
     ok = create_tables(Terms),
     {atomic, ok} = mnesia:transaction(fun () -> process_terms(Terms, default) end).
 
-get_option(all, Name) ->
-    Fun = fun (#hosts{config = Config}, Accum) ->
-                  case mnesia:read({Config, Name}) of
-                      [#configuration{key = Name, value = Val}] -> [Val | Accum];
-                      _                                         -> Accum
-                  end
+get_hosts() ->
+    Fun = fun () ->
+                  Q = qlc:q([H#hosts.name || H <- mnesia:table(hosts)]),
+                  qlc:e(Q)
           end,
-    {atomic, Res} = mnesia:transaction(fun () -> mnesia:foldl(Fun, [], hosts) end),
+    {atomic, Res} = mnesia:transaction(Fun),
+    Res.
+
+get_option(all, Name) ->
+    Fun = fun () ->
+                  Q = qlc:q([Host#hosts.config || Host <- mnesia:table(hosts)]),
+                  Tabs = sets:from_list(qlc:e(Q)),
+                  sets:fold(fun (Table, Accum) ->
+                                    case mnesia:read({Table, Name}) of
+                                        [#configuration{key = Name, value = Val}] -> [Val | Accum];
+                                        _ -> Accum
+                                    end
+                            end, [], Tabs)
+          end,
+    {atomic, Res} = mnesia:transaction(Fun),
     Res;
 get_option(Table, Name) when is_atom(Table) ->
     Fun = fun () ->
                   [#configuration{key = Name, value = Val}] = mnesia:read({Table, Name}),
                   Val
           end,
-    {atomic, Res} = mnesia:transaction(Fun),
-    Res;
+    case mnesia:transaction(Fun) of
+        {atomic, Res} -> Res;
+        _ -> undefined
+    end;
+
 get_option(Host, Name) when is_list(Host) ->
     Fun = fun () ->
                   [#hosts{config = Table}] = mnesia:read({hosts, Host}),
                   get_option(Table, Name)
           end,
-    {atomic, Res} = mnesia:transaction(Fun),
-    Res.
-
-debug_start() ->
-    application:start(mnesia),
-    os:putenv("EJABBERD_CONFIG_PATH", "/Users/bjc/src/ejabberd-bjc/test/ejabberd.cfg"),
-    ok.
+    case mnesia:transaction(Fun) of
+        {atomic, Res} -> Res;
+        _ -> undefined
+    end.
 
 preprocess(Filename) ->
     Filename2 = filename:absname(Filename),
@@ -112,13 +124,13 @@ process_term({configuration, Name, Terms}, {ok, Table}) ->
     ok = process_terms(Terms, Name),
     {ok, Table};
 process_term({acl, Name, Val}, {ok, Table}) ->
-    mnesia:write(Table, #configuration{key = acl, value = {Name, Val}}, write),
+    mnesia:write(Table, #configuration{key = {acl, Name}, value = Val}, write),
     {ok, Table};
 process_term({access, Name, Val}, {ok, Table}) ->
-    mnesia:write(Table, #configuration{key = access, value = {Name, Val}}, write),
+    mnesia:write(Table, #configuration{key = {access, Name}, value = Val}, write),
     {ok, Table};
 process_term({shaper, Name, Val}, {ok, Table}) ->
-    mnesia:write(Table, #configuration{key = shaper, value = {Name, Val}}, write),
+    mnesia:write(Table, #configuration{key = {shaper, Name}, value = Val}, write),
     {ok, Table};
 process_term({hosts, Hosts}, {ok, Table}) ->
     {process_hosts(Hosts), Table};

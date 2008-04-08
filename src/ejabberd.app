@@ -22,7 +22,7 @@
 	     ejabberd,
 	     ejabberd_c2s,
 	     ejabberd_c2s_config,
-	     ejabberd_config,
+	     bjc_config,
 	     ejabberd_ctl,
 	     ejabberd_frontend_socket,
 	     ejabberd_hooks,

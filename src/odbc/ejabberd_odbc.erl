@@ -132,7 +132,7 @@ escape_like(C)  -> odbc_queries:escape(C).
 %%          {stop, Reason}
 %%----------------------------------------------------------------------
 init([Host]) ->
-    case ejabberd_config:get_local_option({odbc_keepalive_interval, Host}) of
+    case bjc_config:get_option(Host, odbc_keepalive_interval) of
 	Interval when is_integer(Interval) ->
 	    timer:apply_interval(Interval*1000, ?MODULE, keep_alive, [self()]);
 	undefined ->
@@ -140,7 +140,7 @@ init([Host]) ->
 	_Other ->
 	    ?ERROR_MSG("Wrong odbc_keepalive_interval definition '~p' for host ~p.~n", [_Other, Host])
     end,
-    SQLServer = ejabberd_config:get_local_option({odbc_server, Host}),
+    SQLServer = bjc_config:get_option(host, odbc_server),
     case SQLServer of
 	%% Default pgsql port
 	{pgsql, Server, DB, Username, Password} ->

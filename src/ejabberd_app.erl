@@ -50,7 +50,7 @@ start(normal, _Args) ->
     acl:start(),
     ejabberd_ctl:init(),
     gen_mod:start(),
-    ejabberd_config:start(),
+    bjc_config:start(),
     ejabberd_check:config(),
     start(),
     connect_nodes(),
@@ -131,7 +131,7 @@ db_init() ->
 start_modules() ->
     lists:foreach(
       fun(Host) ->
-	      case ejabberd_config:get_local_option({modules, Host}) of
+	      case bjc_config:get_option(Host, modules) of
 		  undefined ->
 		      ok;
 		  Modules ->

@@ -21,9 +21,9 @@
 
 -define(VERSION, "2.0.0").
 
--define(MYHOSTS, ejabberd_config:get_global_option(hosts)).
--define(MYNAME, hd(ejabberd_config:get_global_option(hosts))).
--define(MYLANG, ejabberd_config:get_global_option(language)).
+-define(MYHOSTS, bjc_config:get_hosts()).
+-define(MYNAME, hd(bjc_config:get_hosts())).
+-define(MYLANG, hd(bjc_config:get_option(all, language))).
 
 -define(MSGS_DIR, "msgs").
 -define(CONFIG_PATH, "ejabberd.cfg").
