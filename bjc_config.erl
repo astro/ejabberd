@@ -1,12 +1,3 @@
-%% TODO - handle domain_certfile config option. The biggest problem
-%% here is that we don't want to create one config per-domain, but
-%% domains are keyed one:one with configs.
-
-%% NFC how to handle this w/o a hack.
-
-%% Also, we're ending up w/ hosts inside config_default, which is not
-%% what we want. It should be a separate table entirely.
-
 -module(bjc_config).
 -author("bjc@kublai.com").
 
@@ -15,6 +6,7 @@
 
 -define(TABLE_PREFIX, "config_").
 -record(configuration, {key, value}).
+-record(hosts, {name, config, overrides}).
 -record(load_info, {includes = sets:new(), terms = [], cwd}).
 
 start() ->
@@ -74,6 +66,7 @@ find_includes(Term, #load_info{terms = Other} = Accum) ->
     Accum#load_info{terms = [Term | Other]}.
 
 create_tables(Terms) ->
+    mnesia:create_table(hosts, [{ram_copies, [node()]}, {attributes, record_info(fields, hosts)}]),
     Tables = [default | lists:foldl(fun ({configuration, Table, _Terms}, Accum) ->
                                             [Table | Accum];
                                         (_, Accum) -> Accum
@@ -103,6 +96,8 @@ process_term({access, Name, Val}, {ok, Table}) ->
 process_term({shaper, Name, Val}, {ok, Table}) ->
     mnesia:write(Table, #configuration{key = shaper, value = {Name, Val}}, write),
     {ok, Table};
+process_term({hosts, Hosts}, {ok, Table}) ->
+    {process_hosts(Hosts), Table};
 process_term({Key, Val}, {ok, Table}) ->
     mnesia:write(Table, #configuration{key = Key, value = Val}, write),
     {ok, Table};
@@ -110,6 +105,18 @@ process_term(Term, {ok, _Table}) ->
     {bad_term, Term};
 process_term(_Term, LastResult) ->
     LastResult.
+
+process_hosts(HostTerms) ->
+    NormHosts = [normalize_host_term(Term) || Term <- HostTerms],
+    lists:foreach(fun (Record) -> mnesia:write(Record) end, NormHosts),
+    ok.
+
+normalize_host_term({Name, Config, Overrides}) ->
+    #hosts{name = Name, config = Config, overrides = Overrides};
+normalize_host_term({Name, Config}) ->
+    normalize_host_term({Name, Config, []});
+normalize_host_term(Name) ->
+    normalize_host_term({Name, default, []}).
 
 name_for_table(Table) ->
     list_to_atom(?TABLE_PREFIX ++ atom_to_list(Table)).
