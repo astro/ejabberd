@@ -4,6 +4,8 @@
 -compile(export_all).
 -include("ejabberd.hrl").
 
+-record(load_info, {includes = sets:new(), terms = [], cwd}).
+
 start() ->
     Config = case application:get_env(config) of
 		 {ok, Path} -> Path;
@@ -18,29 +20,36 @@ start() ->
     load_file(Config).
 
 load_file(Filename) ->
-    load_file(Filename, {sets:new(), []}).
+    {ok, Terms} = preprocess(Filename).
 
-load_file(Filename, {Included, Others}) ->
+preprocess(Filename) ->
+    Filename2 = filename:absname(Filename),
+    Cwd = filename:dirname(Filename2),
+    LoadInfo = preprocess(Filename2, #load_info{includes = sets:from_list([Filename2]), cwd = Cwd}),
+    {ok, LoadInfo#load_info.terms}.
+
+preprocess(Filename, #load_info{includes = Included, terms = Others, cwd = Cwd}) ->
     case file:consult(Filename) of
         {error, Reason} ->
             ?ERROR_MSG("Couldn't load ~p: ~p", [Filename, Reason]),
             exit({error, unable_to_load, Filename, Reason});
 
         {ok, Terms} ->
-            {Includes, Others2} = lists:foldl(fun find_includes/2, {Included, []}, Terms),
-            {Includes2, IncludeOthers} = sets:fold(fun load_file/2, {Includes, []},
-                                                   sets:subtract(Includes, Included)),
-            {Includes2, Others ++ IncludeOthers ++ Others2}
+            IncludeInfo = lists:foldl(fun find_includes/2,
+                                      #load_info{includes = Included, cwd = Cwd},
+                                      Terms),
+            IncludeInfo2 = sets:fold(fun preprocess/2,
+                                     #load_info{includes = IncludeInfo#load_info.includes, cwd = Cwd},
+                                     sets:subtract(IncludeInfo#load_info.includes, Included)),
+            #load_info{includes = IncludeInfo2#load_info.includes,
+                       terms = Others ++ IncludeInfo2#load_info.terms ++ IncludeInfo#load_info.terms,
+                       cwd = Cwd}
     end.
 
-find_includes([], Accum) ->
+find_includes([], #load_info{} = Accum) ->
     Accum;
-find_includes({include, Filename}, {Includes, Other}) ->
-    Truename = truename(Filename),
-    {sets:add_element(Truename, Includes), Other};
-find_includes(Term, {Includes, Other}) ->
-    {Includes, [Term | Other]}.
-
-%% Convert relative or absolute path into a normalized path from root.
-truename(Filename) ->
-    Filename.
+find_includes({include, Filename}, #load_info{includes = Includes, cwd = Cwd} = Accum) ->
+    Truename = filename:absname_join(Cwd, Filename),
+    Accum#load_info{includes = sets:add_element(Truename, Includes)};
+find_includes(Term, #load_info{terms = Other} = Accum) ->
+    Accum#load_info{terms = [Term | Other]}.
