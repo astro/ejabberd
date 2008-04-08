@@ -2014,6 +2014,9 @@ these queries. Possible values are:
   of IQ queries of a namespace with this discipline. In addition, the processing
   of this queue is done in parallel with that of other packets. This discipline
   is most recommended.
+  \titem{\{queues, N\}}: N separate queues are created to process the
+  queries. The queries are thus process in parallel, but in a
+  controlled way.
 \titem{parallel} For every packet with this discipline a separate Erlang process
   is spawned. Consequently, all these packets are processed in parallel.
   Although spawning of Erlang process has a relatively low cost, this can break
@@ -2411,7 +2414,7 @@ Options:
   interval delay. Intermediate presence packets are silently
   discarded. A good value for this option is 4 seconds.
 
-  \titem{default\_room\_opts} \ind{options!default\_room\_opts}This
+  \titem{default\_room\_options} \ind{options!default\_room\_options}This
   option allow to define the desired default room options.  Obviously,
   the room creator can modify the room options at any time.  The
   available room options are: \option{allow\_change\_subj},
@@ -2499,7 +2502,7 @@ defined, but some user restriction could be added as well:
    ]}.
 \end{verbatim}
 
-\item This example shows how to use \option{default\_room\_opts} to make sure
+\item This example shows how to use \option{default\_room\_options} to make sure
   newly created chatrooms have by default those options.
   \begin{verbatim}
   {modules,
