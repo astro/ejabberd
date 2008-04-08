@@ -21,7 +21,8 @@ start() ->
     load_file(Config).
 
 load_file(Filename) ->
-    {ok, Terms} = preprocess(Filename).
+    {ok, Terms} = preprocess(Filename),
+    ok = process_terms(Terms, default).
 
 preprocess(Filename) ->
     Filename2 = filename:absname(Filename),
@@ -54,3 +55,16 @@ find_includes({include, Filename}, #load_info{includes = Includes, cwd = Cwd} = 
     Accum#load_info{includes = sets:add_element(Truename, Includes)};
 find_includes(Term, #load_info{terms = Other} = Accum) ->
     Accum#load_info{terms = [Term | Other]}.
+
+process_terms(Terms, Table) ->
+    {ok, _} = lists:foldl(fun process_terms2/2, {ok, Table}, Terms),
+    ok.
+
+process_terms2({configuration, Name, Terms}, {ok, Table}) ->
+    ok = process_terms(Terms, Name),
+    {ok, Table};
+process_terms2(Term, {ok, Table}) ->
+    io:format("DEBUG: ~p -> ~p~n", [Term, Table]),
+    {ok, Table};
+process_terms2(_Term, _LastResult) ->
+    _LastResult.
