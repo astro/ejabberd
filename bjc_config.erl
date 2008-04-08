@@ -28,6 +28,15 @@ load_file(Filename) ->
     ok = create_tables(Terms),
     {atomic, ok} = mnesia:transaction(fun () -> process_terms(Terms, default) end).
 
+get_option(all, Name) ->
+    Fun = fun (#hosts{config = Config}, Accum) ->
+                  case mnesia:read({Config, Name}) of
+                      [#configuration{key = Name, value = Val}] -> [Val | Accum];
+                      _                                         -> Accum
+                  end
+          end,
+    {atomic, Res} = mnesia:transaction(fun () -> mnesia:foldl(Fun, [], hosts) end),
+    Res;
 get_option(Table, Name) when is_atom(Table) ->
     Fun = fun () ->
                   [#configuration{key = Name, value = Val}] = mnesia:read({Table, Name}),
