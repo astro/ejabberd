@@ -30,8 +30,8 @@ load_file(Filename) ->
 
 get_option(Table, Name) when is_atom(Table) ->
     Fun = fun () ->
-                  [Option] = mnesia:read({Table, Name}),
-                  Option
+                  [#configuration{key = Name, value = Val}] = mnesia:read({Table, Name}),
+                  Val
           end,
     {atomic, Res} = mnesia:transaction(Fun),
     Res;
