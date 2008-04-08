@@ -1,7 +1,7 @@
 -module(bjc_config).
 -author("bjc@kublai.com").
 
--export([start/0, load_file/1]).
+-export([start/0, load_file/1, get_option/2]).
 -include("ejabberd.hrl").
 
 -define(TABLE_PREFIX, "config_").
@@ -27,6 +27,9 @@ load_file(Filename) ->
     {ok, Terms} = preprocess(Filename),
     ok = create_tables(Terms),
     {atomic, ok} = mnesia:transaction(fun () -> process_terms(Terms, default) end).
+
+get_option(_Host, _Name) ->
+    {error, notimplemented}.
 
 debug_start() ->
     application:start(mnesia),
