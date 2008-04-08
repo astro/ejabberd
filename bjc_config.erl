@@ -2,6 +2,7 @@
 -author("bjc@kublai.com").
 
 -compile(export_all).
+%-export([start/0, load_file/1]).
 -include("ejabberd.hrl").
 
 -record(load_info, {includes = sets:new(), terms = [], cwd}).
@@ -42,7 +43,7 @@ preprocess(Filename, #load_info{includes = Included, terms = Others, cwd = Cwd})
                                      #load_info{includes = IncludeInfo#load_info.includes, cwd = Cwd},
                                      sets:subtract(IncludeInfo#load_info.includes, Included)),
             #load_info{includes = IncludeInfo2#load_info.includes,
-                       terms = Others ++ IncludeInfo2#load_info.terms ++ IncludeInfo#load_info.terms,
+                       terms = Others ++ IncludeInfo2#load_info.terms ++ lists:reverse(IncludeInfo#load_info.terms),
                        cwd = Cwd}
     end.
 
