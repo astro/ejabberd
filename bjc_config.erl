@@ -28,8 +28,20 @@ load_file(Filename) ->
     ok = create_tables(Terms),
     {atomic, ok} = mnesia:transaction(fun () -> process_terms(Terms, default) end).
 
-get_option(_Host, _Name) ->
-    {error, notimplemented}.
+get_option(Table, Name) when is_atom(Table) ->
+    Fun = fun () ->
+                  [Option] = mnesia:read({Table, Name}),
+                  Option
+          end,
+    {atomic, Res} = mnesia:transaction(Fun),
+    Res;
+get_option(Host, Name) when is_list(Host) ->
+    Fun = fun () ->
+                  [#hosts{config = Table}] = mnesia:read({hosts, Host}),
+                  get_option(Table, Name)
+          end,
+    {atomic, Res} = mnesia:transaction(Fun),
+    Res.
 
 debug_start() ->
     application:start(mnesia),
