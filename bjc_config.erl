@@ -1,13 +1,20 @@
+%% TODO - handle domain_certfile config option. The biggest problem
+%% here is that we don't want to create one config per-domain, but
+%% domains are keyed one:one with configs.
+
+%% NFC how to handle this w/o a hack.
+
+%% Also, we're ending up w/ hosts inside config_default, which is not
+%% what we want. It should be a separate table entirely.
+
 -module(bjc_config).
 -author("bjc@kublai.com").
 
--compile(export_all).
-%-export([start/0, load_file/1]).
+-export([start/0, load_file/1]).
 -include("ejabberd.hrl").
 
 -define(TABLE_PREFIX, "config_").
 -record(configuration, {key, value}).
-
 -record(load_info, {includes = sets:new(), terms = [], cwd}).
 
 start() ->
@@ -72,26 +79,38 @@ create_tables(Terms) ->
                                         (_, Accum) -> Accum
                                     end, [], Terms)],
     CreateFun = fun (Table) ->
-                        Table2 = list_to_atom(?TABLE_PREFIX ++ atom_to_list(Table)),
-                        mnesia:create_table(Table2,
+                        mnesia:create_table(name_for_table(Table),
                                             [{ram_copies, [node()]},
-                                             {attributes, record_info(fields, configuration)}])
+                                             {attributes, record_info(fields, configuration)},
+                                             {record_name, configuration}])
                 end,
     lists:foreach(CreateFun, Tables),
     ok.
 
 process_terms(Terms, Table) ->
-    {ok, _} = lists:foldl(fun process_terms2/2, {ok, Table}, Terms),
+    {ok, _} = lists:foldl(fun process_term/2, {ok, name_for_table(Table)}, Terms),
     ok.
 
-process_terms2({configuration, Name, Terms}, {ok, Table}) ->
+process_term({configuration, Name, Terms}, {ok, Table}) ->
     ok = process_terms(Terms, Name),
     {ok, Table};
-process_terms2({Key, Val}, {ok, Table}) ->
-    io:format("DEBUG: ~p:~p -> ~p~n", [Table, Key, Val]),
-    mnesia:write(Table, #configuration{key = Key, value = Val}),
+process_term({acl, Name, Val}, {ok, Table}) ->
+    mnesia:write(Table, #configuration{key = acl, value = {Name, Val}}, write),
     {ok, Table};
-process_terms2(Term, {ok, _Table}) ->
+process_term({access, Name, Val}, {ok, Table}) ->
+    mnesia:write(Table, #configuration{key = access, value = {Name, Val}}, write),
+    {ok, Table};
+process_term({shaper, Name, Val}, {ok, Table}) ->
+    mnesia:write(Table, #configuration{key = shaper, value = {Name, Val}}, write),
+    {ok, Table};
+process_term({Key, Val}, {ok, Table}) ->
+    mnesia:write(Table, #configuration{key = Key, value = Val}, write),
+    {ok, Table};
+process_term(Term, {ok, _Table}) ->
     {bad_term, Term};
-process_terms2(_Term, _LastResult) ->
-    _LastResult.
+process_term(_Term, LastResult) ->
+    LastResult.
+
+name_for_table(Table) ->
+    list_to_atom(?TABLE_PREFIX ++ atom_to_list(Table)).
+    
