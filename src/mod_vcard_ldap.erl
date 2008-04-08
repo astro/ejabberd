@@ -665,17 +665,17 @@ parse_options(Host, Opts) ->
     Eldap_ID = atom_to_list(gen_mod:get_module_proc(Host, ?PROCNAME)),
     LDAPServers = case gen_mod:get_opt(ldap_servers, Opts, undefined) of
 		      undefined ->
-			  ejabberd_config:get_local_option({ldap_servers, Host});
+			  bjc_config:get_option(Host, ldap_servers);
 		      S -> S
 		  end,
     LDAPBackups = case gen_mod:get_opt(ldap_backups, Opts, undefined) of
 		      undefined ->
-			  ejabberd_config:get_local_option({ldap_servers, Host});
+			  bjc_config:get_option(Host, ldap_servers);
 		      Backups -> Backups
 		  end,
     LDAPPort = case gen_mod:get_opt(ldap_port, Opts, undefined) of
 		   undefined ->
-		       case ejabberd_config:get_local_option({ldap_port, Host}) of
+		       case bjc_config:get_option(Host, ldap_port) of
 			   undefined -> 389;
 			   P -> P
 		       end;
@@ -683,12 +683,12 @@ parse_options(Host, Opts) ->
 	       end,
     LDAPBase = case gen_mod:get_opt(ldap_base, Opts, undefined) of
 		   undefined ->
-		       ejabberd_config:get_local_option({ldap_base, Host});
+		       bjc_config:get_option(Host, ldap_base);
 		   B -> B
 	       end,
 	UIDs = case gen_mod:get_opt(ldap_uids, Opts, undefined) of
 	    undefined ->
-		    case ejabberd_config:get_local_option({ldap_uids, Host}) of
+		    case bjc_config:get_option(Host, ldap_uids) of
 			undefined -> [{"uid", "%u"}];
 			UI -> eldap_utils:uids_domain_subst(Host, UI)
 			end;
@@ -696,7 +696,7 @@ parse_options(Host, Opts) ->
 		end,
     RootDN = case gen_mod:get_opt(ldap_rootdn, Opts, undefined) of
 		 undefined ->
-		     case ejabberd_config:get_local_option({ldap_rootdn, Host}) of
+		     case bjc_config:get_option(Host, ldap_rootdn) of
 			 undefined -> "";
 			 RDN -> RDN
 		     end;
@@ -704,7 +704,7 @@ parse_options(Host, Opts) ->
 	     end,
     Password = case gen_mod:get_opt(ldap_password, Opts, undefined) of
 		   undefined ->
-		       case ejabberd_config:get_local_option({ldap_password, Host}) of
+		       case bjc_config:get_option(Host, ldap_password) of
 			   undefined -> "";
 			   Pass -> Pass
 		       end;
@@ -713,7 +713,7 @@ parse_options(Host, Opts) ->
     SubFilter = lists:flatten(eldap_utils:generate_subfilter(UIDs)),
     UserFilter = case gen_mod:get_opt(ldap_filter, Opts, undefined) of
 		     undefined ->
-			 case ejabberd_config:get_local_option({ldap_filter, Host}) of
+			 case bjc_config:get_option(Host, ldap_filter) of
 			     undefined -> SubFilter;
 			     "" -> SubFilter;
 			     F -> "(&" ++ SubFilter ++ F ++ ")"

@@ -567,9 +567,7 @@ wait_for_starttls_proceed({xmlstreamelement, El}, StateData) ->
 		    ?DEBUG("starttls: ~p", [{StateData#state.myname,
 					     StateData#state.server}]),
 		    Socket = StateData#state.socket,
-		    TLSOpts = case ejabberd_config:get_local_option(
-				     {domain_certfile,
-				      StateData#state.server}) of
+		    TLSOpts = case bjc_config:get_option(StateData#state.server, domain_certfile) of
 				  undefined ->
 				      StateData#state.tls_options;
 				  CertFile ->
