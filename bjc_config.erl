@@ -112,7 +112,7 @@ process_hosts(HostTerms) ->
     ok.
 
 normalize_host_term({Name, Config, Overrides}) ->
-    #hosts{name = Name, config = Config, overrides = Overrides};
+    #hosts{name = Name, config = name_for_table(Config), overrides = Overrides};
 normalize_host_term({Name, Config}) ->
     normalize_host_term({Name, Config, []});
 normalize_host_term(Name) ->
