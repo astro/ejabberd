@@ -35,7 +35,7 @@
 
 
 new(Name) ->
-    Data = case ejabberd_config:get_global_option({shaper, Name, global}) of
+    Data = case bjc_config:get_option(config_default, {shaper, Name}) of
 	       undefined ->
 		   none;
 	       D ->

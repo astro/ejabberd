@@ -144,17 +144,15 @@ init([{SockMod, Socket}, Opts]) ->
 		 {value, {_, S}} -> S;
 		 _ -> none
 	     end,
-    StartTLS = case ejabberd_config:get_local_option(s2s_use_starttls) of
-		   undefined ->
-		       false;
-		   UseStartTLS ->
-		       UseStartTLS
+    StartTLS = case bjc_config:get_option(all, s2s_use_starttls) of
+                   [] -> false;
+		   [UseStartTLS] -> UseStartTLS;
+                   _ -> {error, too_many_in_config, s2s_use_starttls}
 	       end,
-    TLSOpts = case ejabberd_config:get_local_option(s2s_certfile) of
-		  undefined ->
-		      [];
-		  CertFile ->
-		      [{certfile, CertFile}]
+    TLSOpts = case bjc_config:get_option(all, s2s_certfile) of
+                  [] -> [];
+                  [CertFile] -> [{certfile, CertFile}];
+                  _ -> {error, too_many_in_config, s2s_certfile}
 	      end,
     Timer = erlang:start_timer(?S2STIMEOUT, self(), []),
     {ok, wait_for_stream,

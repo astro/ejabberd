@@ -27,6 +27,8 @@
 -module(ejabberd_listener).
 -author('alexey@process-one.net').
 
+-behavior(supervisor).
+
 -export([start_link/0, init/1, start/3,
 	 init/3,
 	 init_ssl/4,
@@ -43,21 +45,17 @@ start_link() ->
 
 
 init(_) ->
-    case ejabberd_config:get_local_option(listen) of
-	undefined ->
-	    ignore;
-	Ls ->
-	    {ok, {{one_for_one, 10, 1},
-		  lists:map(
-		    fun({Port, Module, Opts}) ->
-			    {Port,
-			     {?MODULE, start, [Port, Module, Opts]},
-			     transient,
-			     brutal_kill,
-			     worker,
-			     [?MODULE]}
-		    end, Ls)}}
-    end.
+    Ls = lists:foldl(fun (New, Acc) -> New ++ Acc end, [], bjc_config:get_option(all, listen)),
+    {ok, {{one_for_one, 10, 1},
+          lists:map(
+            fun({Port, Module, Opts}) ->
+                    {list_to_atom("listener_" ++ integer_to_list(Port)),
+                     {?MODULE, start, [Port, Module, Opts]},
+                     transient,
+                     brutal_kill,
+                     worker,
+                     [?MODULE]}
+            end, Ls)}}.
 
 
 start(Port, Module, Opts) ->
@@ -192,24 +190,14 @@ stop_listener(Port) ->
     supervisor:delete_child(ejabberd_listeners, Port).
 
 add_listener(Port, Module, Opts) ->
-    Ports = case ejabberd_config:get_local_option(listen) of
-		undefined ->
-		    [];
-		Ls ->
-		    Ls
-	    end,
+    Ports = lists:foldl(fun (P, Acc) -> P ++ Acc end, [], bjc_config:get_option(all, listen)),
     Ports1 = lists:keydelete(Port, 1, Ports),
     Ports2 = [{Port, Module, Opts} | Ports1],
     ejabberd_config:add_local_option(listen, Ports2),
     start_listener(Port, Module, Opts).
 
 delete_listener(Port) ->
-    Ports = case ejabberd_config:get_local_option(listen) of
-		undefined ->
-		    [];
-		Ls ->
-		    Ls
-	    end,
+    Ports = lists:foldl(fun (P, Acc) -> P ++ Acc end, [], bjc_config:get_option(all, listen)),
     Ports1 = lists:keydelete(Port, 1, Ports),
     ejabberd_config:add_local_option(listen, Ports1),
     stop_listener(Port).

@@ -118,7 +118,7 @@ init([Host, Opts]) ->
     Timezone = gen_mod:get_opt(timezone, Opts, local),
     Top_link = gen_mod:get_opt(top_link, Opts, {"/", "Home"}),
     NoFollow = gen_mod:get_opt(spam_prevention, Opts, true),
-    Lang = case ejabberd_config:get_local_option({language, Host}) of
+    Lang = case bjc_config:get_option(Host, language) of
 	       undefined ->
 		   "";
 	       L ->

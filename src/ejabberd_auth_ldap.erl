@@ -354,41 +354,41 @@ local_filter(notequal, Attrs, FilterMatch) ->
 parse_options(Host) ->
     Eldap_ID = atom_to_list(gen_mod:get_module_proc(Host, ?MODULE)),
     Bind_Eldap_ID = atom_to_list(gen_mod:get_module_proc(Host, bind_ejabberd_auth_ldap)),
-    LDAPServers = ejabberd_config:get_local_option({ldap_servers, Host}),
-    LDAPBackups = case ejabberd_config:get_local_option({ldap_backups, Host}) of
+    LDAPServers = bjc_config:get_option(Host, ldap_servers),
+    LDAPBackups = case bjc_config:get_option(Host, ldap_backups) of
 		   undefined -> [];
 		   Backups -> Backups
 		   end,
-    LDAPPort = case ejabberd_config:get_local_option({ldap_port, Host}) of
+    LDAPPort = case bjc_config:get_option(Host, ldap_port) of
 		   undefined -> 389;
 		   P -> P
 	       end,
-    RootDN = case ejabberd_config:get_local_option({ldap_rootdn, Host}) of
+    RootDN = case bjc_config:get_option(Host, ldap_rootdn) of
 		 undefined -> "";
 		 RDN -> RDN
 	     end,
-    Password = case ejabberd_config:get_local_option({ldap_password, Host}) of
+    Password = case bjc_config:get_option(Host, ldap_password) of
 		   undefined -> "";
 		   Pass -> Pass
 	       end,
-    UIDs = case ejabberd_config:get_local_option({ldap_uids, Host}) of
+    UIDs = case bjc_config:get_option(Host, ldap_uids) of
 	       undefined -> [{"uid", "%u"}];
 	       UI -> eldap_utils:uids_domain_subst(Host, UI)
 	   end,
     SubFilter = lists:flatten(eldap_utils:generate_subfilter(UIDs)),
-    UserFilter = case ejabberd_config:get_local_option({ldap_filter, Host}) of
+    UserFilter = case bjc_config:get_option(Host, ldap_filter) of
 		     undefined -> SubFilter;
 		     "" -> SubFilter;
 		     F -> "(&" ++ SubFilter ++ F ++ ")"
 		 end,
     SearchFilter = eldap_filter:do_sub(UserFilter, [{"%u", "*"}]),
-    LDAPBase = ejabberd_config:get_local_option({ldap_base, Host}),
+    LDAPBase = bjc_config:get_option(Host, ldap_base),
     {DNFilter, DNFilterAttrs} =
-	case ejabberd_config:get_local_option({ldap_dn_filter, Host}) of
+	case bjc_config:get_option(Host, ldap_dn_filter) of
 	    undefined -> {undefined, undefined};
 	    {DNF, DNFA} -> {DNF, DNFA}
 	end,
-	LocalFilter = ejabberd_config:get_local_option({ldap_local_filter, Host}),
+	LocalFilter = bjc_config:get_option(host, ldap_local_filter),
     #state{host = Host,
 	   eldap_id = Eldap_ID,
 	   bind_eldap_id = Bind_Eldap_ID,

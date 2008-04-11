@@ -858,7 +858,7 @@ process_admin(Host,
 	      _ ->
 		  nothing
 	  end,
-    Rules = case ejabberd_config:get_global_option({access, Name, Host}) of
+    Rules = case bjc_config:get_option(Host, {access, Name}) of
 		undefined ->
 		    [];
 		Rs1 ->
@@ -1800,7 +1800,8 @@ get_node(global, Node, ["backup"], Query, Lang) ->
 		])])];
 
 get_node(global, Node, ["ports"], Query, Lang) ->
-    Ports = rpc:call(Node, ejabberd_config, get_local_option, [listen]),
+    Ports = lists:foldl(fun (Port, Acc) -> Port ++ Acc end, [],
+                        rpc:call(Node, bjc_config, get_option, [all, listen])),
     Res = case catch node_ports_parse_query(Node, Ports, Query) of
 	      submitted ->
 		  ok;
@@ -1810,7 +1811,8 @@ get_node(global, Node, ["ports"], Query, Lang) ->
 		  nothing
 	  end,
     NewPorts = lists:sort(
-		 rpc:call(Node, ejabberd_config, get_local_option, [listen])),
+		 lists:foldl(fun (Port, Acc) -> Port ++ Acc end, [],
+                             rpc:call(Node, bjc_config, get_option, [all, listen]))),
     [?XC("h1", ?T("Listened Ports at ") ++ atom_to_list(Node))] ++
 	case Res of
 	    ok -> [?CT("Submitted"), ?P];

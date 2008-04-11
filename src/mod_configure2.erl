@@ -118,23 +118,17 @@ process_get({xmlelement, "info", _Attrs, _SubEls}) ->
     {result, {xmlelement, "info",
 	      [{"xmlns", ?NS_ECONFIGURE} | Attrs], []}};
 process_get({xmlelement, "welcome-message", Attrs, _SubEls}) ->
-    {Subj, Body} = case ejabberd_config:get_local_option(welcome_message) of
-		       {_Subj, _Body} = SB -> SB;
-		       _ -> {"", ""}
-		   end,
+    [{Subj, Body}] = case bjc_config:get_option(all, welcome_message) of
+                         {_Subj, _Body} = SB -> SB;
+                         _ -> {"", ""}
+                     end,
     {result, {xmlelement, "welcome-message", Attrs,
 	      [{xmlelement, "subject", [], [{xmlcdata, Subj}]},
 	       {xmlelement, "body", [], [{xmlcdata, Body}]}]}};
 process_get({xmlelement, "registration-watchers", Attrs, _SubEls}) ->
-    SubEls =
-	case ejabberd_config:get_local_option(registration_watchers) of
-	    JIDs when is_list(JIDs) ->
-		lists:map(fun(JID) ->
-				  {xmlelement, "jid", [], [{xmlcdata, JID}]}
-			  end, JIDs);
-	    _ ->
-		[]
-	end,
+    Watchers = lists:foldl(fun (JID, Acc) -> JID ++ Acc end, [],
+                           bjc_config:get_option(all, registration_watchers)),
+    SubEls = lists:map(fun (JID) -> {xmlelement, "jid", [], [{xmlcdata, JID}]} end, Watchers),
     {result, {xmlelement, "registration_watchers", Attrs, SubEls}};
 process_get({xmlelement, "acls", Attrs, _SubEls}) ->
     Str = lists:flatten(io_lib:format("~p.", [ets:tab2list(acl)])),

@@ -579,8 +579,7 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
 	{?NS_TLS, "starttls"} when TLS == true,
 				   TLSEnabled == false,
 				   SockMod == gen_tcp ->
-	    TLSOpts = case ejabberd_config:get_local_option(
-			     {domain_certfile, StateData#state.server}) of
+	    TLSOpts = case bjc_config:get_option(StateData#state.server, domain_certfile) of
 			  undefined ->
 			      StateData#state.tls_options;
 			  CertFile ->

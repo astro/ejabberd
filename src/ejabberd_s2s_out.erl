@@ -142,18 +142,16 @@ stop_connection(Pid) ->
 init([From, Server, Type]) ->
     process_flag(trap_exit, true),
     ?DEBUG("started: ~p", [{From, Server, Type}]),
-    TLS = case ejabberd_config:get_local_option(s2s_use_starttls) of
-	      undefined ->
-		  false;
-	      UseStartTLS ->
-		  UseStartTLS
+    TLS = case bjc_config:get_option(all, s2s_use_starttls) of
+	      [] -> false;
+	      [UseStartTLS] -> UseStartTLS;
+              _ -> {error, too_many_in_config, s2s_use_starttls}
 	  end,
     UseV10 = TLS,
-    TLSOpts = case ejabberd_config:get_local_option(s2s_certfile) of
-		  undefined ->
-		      [];
-		  CertFile ->
-		      [{certfile, CertFile}, connect]
+    TLSOpts = case bjc_config:get_option(all, s2s_certfile) of
+		  [] -> [];
+		  [CertFile] -> [{certfile, CertFile}, connect];
+                  _ -> {error, too_many_in_config, s2s_certfile}
 	      end,
     {New, Verify} = case Type of
 			{new, Key} ->
@@ -567,9 +565,7 @@ wait_for_starttls_proceed({xmlstreamelement, El}, StateData) ->
 		    ?DEBUG("starttls: ~p", [{StateData#state.myname,
 					     StateData#state.server}]),
 		    Socket = StateData#state.socket,
-		    TLSOpts = case ejabberd_config:get_local_option(
-				     {domain_certfile,
-				      StateData#state.server}) of
+		    TLSOpts = case bjc_config:get_option(StateData#state.server, domain_certfile) of
 				  undefined ->
 				      StateData#state.tls_options;
 				  CertFile ->
@@ -975,8 +971,8 @@ test_get_addr_port(Server) ->
       end, [], lists:seq(1, 100000)).
 
 outgoing_s2s_port() ->
-    case ejabberd_config:get_local_option(outgoing_s2s_port) of
-	Port when is_integer(Port) ->
+    case bjc_config:get_option(all, outgoing_s2s_port) of
+	[Port] when is_integer(Port) ->
 	    Port;
 	undefined ->
 	    5269

@@ -104,7 +104,7 @@ match_rule(global, Rule, JID) ->
 	all -> allow;
 	none -> deny;
 	_ ->
-	    case ejabberd_config:get_global_option({access, Rule, global}) of
+	    case bjc_config:get_option(config_default, {access, Rule}) of
 		undefined ->
 		    deny;
 		GACLs ->
@@ -117,16 +117,16 @@ match_rule(Host, Rule, JID) ->
 	all -> allow;
 	none -> deny;
 	_ ->
-	    case ejabberd_config:get_global_option({access, Rule, global}) of
+	    case bjc_config:get_option(config_default, {access, Rule}) of
 		undefined ->
-		    case ejabberd_config:get_global_option({access, Rule, Host}) of
+		    case bjc_config:get_option(Host, {access, Rule}) of
 			undefined ->
 			    deny;
 			ACLs ->
 			    match_acls(ACLs, JID, Host)
 		    end;
 		GACLs ->
-		    case ejabberd_config:get_global_option({access, Rule, Host}) of
+		    case bjc_config:get_option(Host, {access, Rule}) of
 			undefined ->
 			    match_acls(GACLs, JID, Host);
 			ACLs ->

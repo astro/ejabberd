@@ -47,8 +47,7 @@
 %%% API
 %%%----------------------------------------------------------------------
 start(Host) ->
-    extauth:start(
-      Host, ejabberd_config:get_local_option({extauth_program, Host})),
+    extauth:start(Host, bjc_config:get_option(Host, extauth_program)),
     ok.
 
 plain_password_required() ->
