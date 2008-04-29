@@ -186,6 +186,26 @@
 %%{{s2s_host, "badhost.org"}, deny}.
 
 
+%%%   ============
+%%%   SOCKET RULES
+
+%%
+%% Enable Tor hidden service support for outgoing s2s connections
+%%
+%% Hidden services have a TLD of ".onion". We do not want SRV record
+%% lookup (though, any other SRV record may point to a .onion host)
+%% and connect them through the local Tor anonymizer listening on
+%% 127.0.0.1:9050.
+%%
+{socket_rules, [
+		{{host_glob, "*.onion"}, [
+					  {socks5, {127,0,0,1}, 9050},
+					  no_srv
+					 ]},
+		{default, []}
+	       ]}.
+
+
 %%%   ==============
 %%%   AUTHENTICATION
 

@@ -42,7 +42,10 @@
 	 get_peer_certificate/1,
 	 get_verify_result/1,
 	 close/1,
-	 sockname/1, peername/1]).
+	 sockname/1, peername/1,
+	 get_socket_rules/2]).
+
+-include("ejabberd.hrl").
 
 -record(socket_state, {sockmod, socket, receiver}).
 
@@ -84,7 +87,13 @@ start(Module, SockMod, Socket, Opts) ->
     end.
 
 connect(Addr, Port, Opts) ->
-    case gen_tcp:connect(Addr, Port, Opts) of
+    case lists:keytake(socks5, 1, Opts) of
+	{value, {socks5, S5Host, S5Port}, Opts2} ->
+	    ConnectResult = ejabberd_socket_socks5:connect(S5Host, S5Port, Addr, Port, Opts2);
+	false ->
+	    ConnectResult = gen_tcp:connect(Addr, Port, Opts)
+    end,
+    case ConnectResult of
 	{ok, Socket} ->
 	    Receiver = ejabberd_receiver:start(Socket, gen_tcp, none),
 	    SocketData = #socket_state{sockmod = gen_tcp,
@@ -170,6 +179,34 @@ peername(#socket_state{sockmod = SockMod, socket = Socket}) ->
 	    SockMod:peername(Socket)
     end.
 
+get_socket_rules(Host, Myname) ->
+    case ejabberd_config:get_local_option({socket_rules, Myname}) of
+	undefined ->
+	    [];
+	Rules ->
+	    eval_socket_rules(Host, Rules)
+    end.
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+eval_socket_rules(_Host, []) ->
+    [];
+eval_socket_rules(_Host, [{default, Opts} | _Rules]) ->
+    Opts;
+eval_socket_rules(Host, [{{host_glob, Glob}, Opts} | Rules]) ->
+    Regexp = regexp:sh_to_awk(Glob),
+    eval_socket_rules(Host, [{{host_regexp, Regexp}, Opts} | Rules]);
+eval_socket_rules(Host, [{{host_regexp, Regexp}, Opts} | Rules]) ->
+    case regexp:first_match(Host, Regexp) of
+	nomatch ->
+	    eval_socket_rules(Host, Rules);
+	{match, _, _} ->
+	    Opts;
+	{error, ErrDesc} ->
+	    ?ERROR_MSG(
+	       "Wrong regexp ~p in socket_rules: ~p",
+	       [Regexp, lists:flatten(regexp:format_error(ErrDesc))]),
+	    eval_socket_rules(Host, Rules)
+    end.

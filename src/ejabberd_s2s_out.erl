@@ -92,7 +92,7 @@
 %% Only change this value if you now what your are doing:
 -define(FSMLIMITS,[]).
 %% -define(FSMLIMITS, [{max_queue, 2000}]).
--define(FSMTIMEOUT, 5000).
+-define(FSMTIMEOUT, 60000).
 
 %% Maximum delay to wait before retrying to connect after a failed attempt.
 %% Specified in miliseconds. Default value is 5 minutes.
@@ -193,17 +193,26 @@ open_socket(init, StateData) ->
 				StateData#state.server,
 				StateData#state.new,
 				StateData#state.verify}]),
-    AddrList = case idna:domain_utf8_to_ascii(StateData#state.server) of
-		   false -> [];
-		   ASCIIAddr ->
-		       get_addr_port(ASCIIAddr)
-	       end,
+    SockOpts = ejabberd_socket:get_socket_rules(StateData#state.server,
+						StateData#state.myname),
+    ?DEBUG("SockOpts for ~p: ~p~n",[StateData#state.server, SockOpts]),
+    ASCIIAddr = idna:domain_utf8_to_ascii(StateData#state.server),
+
+    case {ASCIIAddr, lists:member(no_srv, SockOpts)} of
+	{false, _} -> AddrList = []; % idns:domain_utf8_to_ascii/1 failed
+	{_, true} -> AddrList = [{ASCIIAddr, outgoing_s2s_port()}]; % no_srv present
+	{_, false} -> AddrList = get_addr_port(ASCIIAddr) % use SRV
+    end,
+
     case lists:foldl(fun({Addr, Port}, Acc) ->
 			     case Acc of
 				 {ok, Socket} ->
 				     {ok, Socket};
 				 _ ->
-				     open_socket1(Addr, Port)
+				     SockOpts2 = ejabberd_socket:get_socket_rules(Addr,
+										  StateData#state.myname),
+				     SockOpts3 = lists:delete(no_srv, SockOpts2),
+				     open_socket1(Addr, Port, SockOpts3)
 			     end
 		     end, {error, badarg}, AddrList) of
 	{ok, Socket} ->
@@ -238,25 +247,25 @@ open_socket(_, StateData) ->
     {next_state, open_socket, StateData}.
 
 %%----------------------------------------------------------------------
-open_socket1(Addr, Port) ->
+open_socket1(Addr, Port, SockOpts) ->
     ?DEBUG("s2s_out: connecting to ~s:~p~n", [Addr, Port]),
     Res = case catch ejabberd_socket:connect(
 		       Addr, Port,
 		       [binary, {packet, 0},
-			{active, false}]) of
+			{active, false} | SockOpts]) of
 	      {ok, _Socket} = R -> R;
 	      {error, Reason1} ->
 		  ?DEBUG("s2s_out: connect return ~p~n", [Reason1]),
 		  catch ejabberd_socket:connect(
 			  Addr, Port,
 			  [binary, {packet, 0},
-			   {active, false}, inet6]);
+			   {active, false}, inet6 | SockOpts]);
 	      {'EXIT', Reason1} ->
 		  ?DEBUG("s2s_out: connect crashed ~p~n", [Reason1]),
 		  catch ejabberd_socket:connect(
 			  Addr, Port,
 			  [binary, {packet, 0},
-			   {active, false}, inet6])
+			   {active, false}, inet6 | SockOpts])
 	  end,
     case Res of
 	{ok, Socket} ->
