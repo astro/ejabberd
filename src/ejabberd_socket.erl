@@ -30,6 +30,7 @@
 %% API
 -export([start/4,
 	 connect/3,
+	 connect/4,
 	 starttls/2,
 	 starttls/3,
 	 compress/1,
@@ -48,7 +49,7 @@
 
 %%====================================================================
 %% API
-%%====================================================================
+  %,%====================================================================
 %%--------------------------------------------------------------------
 %% Function: 
 %% Description:
@@ -84,24 +85,31 @@ start(Module, SockMod, Socket, Opts) ->
     end.
 
 connect(Addr, Port, Opts) ->
-    case gen_tcp:connect(Addr, Port, Opts) of
-	{ok, Socket} ->
-	    Receiver = ejabberd_receiver:start(Socket, gen_tcp, none),
-	    SocketData = #socket_state{sockmod = gen_tcp,
-				       socket = Socket,
-				       receiver = Receiver},
-	    Pid = self(),
-	    case gen_tcp:controlling_process(Socket, Receiver) of
-		ok ->
-		    ejabberd_receiver:become_controller(Receiver, Pid),
-		    {ok, SocketData};
-		{error, _Reason} = Error ->
-		    gen_tcp:close(Socket),
-		    Error
-	    end;
-	{error, _Reason} = Error ->
-	    Error
-    end.
+    connect (Addr, Port, Opts, gen_tcp).
+
+connect(Addr, Port, Opts, Type) ->
+    ConnectFun = case Type of
+       gen_tcp -> fun (A,P,O) -> gen_tcp:connect(A,P,O) end;
+       socks5 -> fun (A,P,O) -> socks5_tcp:connect(A,P,O) end 
+       end,
+    case ConnectFun(Addr, Port, Opts)  of
+    {ok, Socket} ->
+       Receiver = ejabberd_receiver:start(Socket, gen_tcp, none),
+       SocketData = #socket_state{sockmod = gen_tcp,
+                      socket = Socket,
+                      receiver = Receiver},
+       Pid = self(),
+       case gen_tcp:controlling_process(Socket, Receiver) of
+       ok ->
+           ejabberd_receiver:become_controller(Receiver, Pid),
+           {ok, SocketData};
+       {error, _Reason} = Error ->
+           gen_tcp:close(Socket),
+           Error
+       end;
+    {error, _Reason} = Error ->
+       Error
+    end. 
 
 starttls(SocketData, TLSOpts) ->
     {ok, TLSSocket} = tls:tcp_to_tls(SocketData#socket_state.socket, TLSOpts),
@@ -173,3 +181,5 @@ peername(#socket_state{sockmod = SockMod, socket = Socket}) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+

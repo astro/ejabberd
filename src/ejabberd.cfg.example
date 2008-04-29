@@ -96,6 +96,18 @@
 %%{route_subdomains, s2s}.
 
 
+%%%   ==============
+%%%   SOCKS CLIENT 
+%%%
+%%
+%%
+{socks5_server, {127,0,0,1}}.
+{socks5_port, 9050}.
+%%{socks_use, none}. 
+{socks5_use, all}. 
+%%{socks5_use, dot_onion_only}. 
+
+
 %%%   ===============
 %%%   LISTENING PORTS
 

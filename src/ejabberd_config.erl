@@ -138,6 +138,10 @@ process_term(Term, State) ->
 	    add_option(listen, Val, State);
 	{language, Val} ->
 	    add_option(language, Val, State);
+
+	{socks5_server, Addr} -> inet_db:set_socks_server(Addr), State;
+	{socks5_port, Port} -> inet_db:set_socks_port(Port), State;
+	{socks5_use, Use} -> add_option(socks5_use, Use, State);
 	{outgoing_s2s_port, Port} ->
 	    add_option(outgoing_s2s_port, Port, State);
 	{s2s_use_starttls, Port} ->
