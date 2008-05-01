@@ -185,8 +185,9 @@ handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
 handle_cast({note_caps,
-	     #caps{jid = From, node = Node, version = Version, hash = Hash}} = Caps,
+	     #caps{jid = From, node = Node, version = Version, hash = Hash} = Caps},
 	    #state{host = Host, disco_requests = Requests} = State) ->
+    ?DEBUG("note_caps ~p ~p", [Caps,State]),
     Fun = fun() ->
 		  case mnesia:read({caps_features, Caps#caps{jid = any, node = any}}) of
 		      [] ->
@@ -240,6 +241,7 @@ handle_cast({disco_response, From, _To,
 					 (_) ->
 					      []
 				      end, Els),
+		    ?DEBUG("generate_ver_from_disco_result(~p, ~p)", [QueryEl, Hash]),
 		    FeaturesHash = generate_ver_from_disco_result(QueryEl, Hash),
 		    ?DEBUG("Hash: ~p Version: ~p", [FeaturesHash, Version]),
 		    mnesia:transaction(
@@ -273,9 +275,9 @@ handle_cast({disco_response, From, _To,
 		    gen_server:cast(self(), visit_feature_queries);
 		error ->
 		    ?ERROR_MSG("ID '~s' matches no query", [ID])
-	    end;
-	    %gen_server:cast(self(), visit_feature_queries),
-	    %?DEBUG("Error IQ reponse from ~s:~n~p", [jlib:jid_to_string(From), SubEls]);
+	    end,
+	    gen_server:cast(self(), visit_feature_queries),
+	    ?DEBUG("Error IQ reponse from ~s:~n~p", [jlib:jid_to_string(From), SubEls]);
 	{result, _} ->
 	    ?DEBUG("Invalid IQ contents from ~s:~n~p", [jlib:jid_to_string(From), SubEls]);
 	_ ->
@@ -289,8 +291,15 @@ handle_cast(visit_feature_queries, #state{feature_queries = FeatureQueries} = St
     NewFeatureQueries =
 	lists:foldl(fun({From, Caps, Timeout}, Acc) ->
 			    case maybe_get_features(Caps) of
+				% Within timeout,
+				% disco_request still running
 				wait when Timeout > Timestamp -> [{From, Caps, Timeout} | Acc];
-				wait -> Acc;
+				% Timeout
+				wait ->
+				    Features = [],
+				    gen_server:reply(From, Features),
+				    Acc;
+				% Disco response available
 				{ok, Features} ->
 				    gen_server:reply(From, Features),
 				    Acc
