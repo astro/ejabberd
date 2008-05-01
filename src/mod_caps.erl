@@ -241,7 +241,6 @@ handle_cast({disco_response, From, _To,
 					 (_) ->
 					      []
 				      end, Els),
-		    ?DEBUG("generate_ver_from_disco_result(~p, ~p)", [QueryEl, Hash]),
 		    FeaturesHash = generate_ver_from_disco_result(QueryEl, Hash),
 		    ?DEBUG("Hash: ~p Version: ~p", [FeaturesHash, Version]),
 		    mnesia:transaction(
@@ -373,7 +372,7 @@ generate_ver_str_from_disco_result({xmlelement, "query", _Attrs, Els}) ->
 		   lists:map(fun(Feature) ->
 				     [Feature, "<"]
 			     end, Features),
-		   lists:map(fun({FormType, [Fields]}) ->
+		   lists:map(fun({FormType, Fields}) ->
 				     [FormType, "<" |
 				      lists:map(fun({Var, Values}) ->
 							[Var, "<" |
@@ -386,10 +385,10 @@ generate_ver_str_from_disco_result({xmlelement, "query", _Attrs, Els}) ->
 form_get_type_and_fields(Els) ->
     form_get_type_and_fields(Els, {"", []}).
 
-form_get_type_and_fields([{xmlelement, "field", Attrs, Els} | Rest], {FormType, Fields}) ->
+form_get_type_and_fields([{xmlelement, "field", Attrs, Children} = El | Rest], {FormType, Fields}) ->
     case xml:get_attr_s("var", Attrs) of
 	"FORM_TYPE" ->
-	    case xml:get_subtag(Els, "value") of
+	    case xml:get_subtag(El, "value") of
 		false ->
 		    FormType2 = "";
 		{xmlelement, "value", _, ValueEls} ->
@@ -401,7 +400,7 @@ form_get_type_and_fields([{xmlelement, "field", Attrs, Els} | Rest], {FormType, 
 					 [xml:get_cdata(ValueEls) | Result];
 				    (_, Result) ->
 					 Result
-				 end, [], Els),
+				 end, [], Children),
 	    Field = {Var, Values},
 	    form_get_type_and_fields(Rest, {FormType, [Field | Fields]})
     end;
