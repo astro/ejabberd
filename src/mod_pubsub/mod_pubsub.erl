@@ -484,7 +484,7 @@ handle_cast({presence, JID, Pid}, State) ->
 		    lists:foreach(fun(#pubsub_node{nodeid = {_, Node}, options = Options}) ->
 			case get_option(Options, send_last_published_item) of
 			    on_sub_and_presence ->
-				case is_caps_notify(ServerHost, Node, Caps) of
+				case is_caps_notify(ServerHost, JID, Node, Caps) of
 				    true ->
 					Subscribed = case get_option(Options, access_model) of
 					    open -> true;
@@ -2282,13 +2282,14 @@ broadcast_by_caps({LUser, LServer, LResource}, Node, _Type, Stanza) ->
 		%% Also, add "replyto" if entity has presence subscription to the account owner
 		%% See XEP-0163 1.1 section 4.3.1
 		Sender = jlib:make_jid(LUser, LServer, ""),
+		SenderFull = jlib:make_jid(LUser, LServer, LResource),
 		%%ReplyTo = jlib:make_jid(LUser, LServer, SenderResource),  % This has to be used
 		case catch ejabberd_c2s:get_subscribed_and_online(C2SPid) of
 		    ContactsWithCaps when is_list(ContactsWithCaps) ->
 			?DEBUG("found contacts with caps: ~p", [ContactsWithCaps]),
 			lists:foreach(
 			fun({JID, Caps}) ->
-				case is_caps_notify(LServer, Node, Caps) of
+				case is_caps_notify(LServer, SenderFull, Node, Caps) of
 				    true ->
 					To = jlib:make_jid(JID),
 					ejabberd_router ! {route, Sender, To, Stanza};
@@ -2308,8 +2309,8 @@ broadcast_by_caps({LUser, LServer, LResource}, Node, _Type, Stanza) ->
 broadcast_by_caps(_, _, _, _) ->
     ok.
 
-is_caps_notify(Host, Node, Caps) ->
-    case catch mod_caps:get_features(Host, Caps) of
+is_caps_notify(Host, JID, Node, Caps) ->
+    case catch mod_caps:get_features(Host, JID, Caps) of
 	Features when is_list(Features) -> lists:member(Node ++ "+notify", Features);
 	_ -> false
     end.

@@ -32,7 +32,7 @@
 
 -export([read_caps/1,
 	 note_caps/3,
-	 get_features/2,
+	 get_features/3,
 	 handle_disco_response/3]).
 
 %% gen_mod callbacks
@@ -54,8 +54,12 @@
 -define(PROCNAME, ejabberd_mod_caps).
 -define(DICT, dict).
 
--record(caps, {node, version, exts}).
--record(caps_features, {node_pair, features}).
+%% jid = any, node = any:    Cache entry for any valid version/hash
+%% jid = JID, node = String: Cache entry for an invalid version
+%%                           or deprecated caps format from a
+%%                           specific jid
+-record(caps, {jid, node, version, hash}).
+-record(caps_features, {caps, features}).
 -record(state, {host,
 		disco_requests = ?DICT:new(),
 		feature_queries = []}).
@@ -71,8 +75,8 @@ read_caps([{xmlelement, "c", Attrs, _Els} | Tail], Result) ->
 	?NS_CAPS ->
 	    Node = xml:get_attr_s("node", Attrs),
 	    Version = xml:get_attr_s("ver", Attrs),
-	    Exts = string:tokens(xml:get_attr_s("ext", Attrs), " "),
-	    read_caps(Tail, #caps{node = Node, version = Version, exts = Exts});
+	    Hash = xml:get_attr_s("hash", Attrs),
+	    read_caps(Tail, #caps{node = Node, version = Version, hash = Hash});
 	_ ->
 	    read_caps(Tail, Result)
     end;
@@ -96,18 +100,18 @@ note_caps(Host, From, Caps) ->
 	nothing -> ok;
 	_ ->
 	    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-	    gen_server:cast(Proc, {note_caps, From, Caps})
+	    gen_server:cast(Proc, {note_caps, Caps#caps{jid = From}})
     end.
 
 %% get_features returns a list of features implied by the given caps
 %% record (as extracted by read_caps).  It may block, and may signal a
 %% timeout error.
-get_features(Host, Caps) ->
+get_features(Host, JID, Caps) ->
     case Caps of
 	nothing -> [];
 	#caps{} ->
 	    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-	    gen_server:call(Proc, {get_features, Caps})
+	    gen_server:call(Proc, {get_features, Caps#caps{jid = JID}})
     end.
 
 start_link(Host, Opts) ->
@@ -140,22 +144,18 @@ init([Host, _Opts]) ->
     mnesia:add_table_copy(caps_features, node(), ram_copies),
     {ok, #state{host = Host}}.
 
-maybe_get_features(#caps{node = Node, version = Version, exts = Exts}) ->
-    SubNodes = [Version | Exts],
+maybe_get_features(Caps) ->
     F = fun() ->
-		%% Make sure that we have all nodes we need to know.
-		%% If a single one is missing, we wait for more disco
-		%% responses.
-		lists:foldl(fun(SubNode, Acc) ->
-				    case Acc of
-					fail -> fail;
-					_ ->
-					    case mnesia:read({caps_features, {Node, SubNode}}) of
-						[] -> fail;
-						[#caps_features{features = Features}] -> Features ++ Acc
-					    end
-				    end
-			    end, [], SubNodes)
+		case mnesia:read({caps_features, Caps#caps{jid = any, node = any}}) of
+		    [] ->
+			?DEBUG("No known generic features for ~p", [Caps]),
+			case mnesia:read({caps_features, Caps}) of
+			    [] -> fail;
+			    [#caps_features{features = Features}] -> Features
+			end;
+		    [#caps_features{features = Features}] ->
+			Features
+		end
 	end,
     case mnesia:transaction(F) of
 	{atomic, fail} ->
@@ -184,22 +184,19 @@ handle_call({get_features, Caps}, From, State) ->
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
-handle_cast({note_caps, From, 
-	     #caps{node = Node, version = Version, exts = Exts}}, 
+handle_cast({note_caps,
+	     #caps{jid = From, node = Node, version = Version, hash = Hash}} = Caps,
 	    #state{host = Host, disco_requests = Requests} = State) ->
-    %% XXX: this leads to race conditions where ejabberd will send
-    %% lots of caps disco requests.
-    SubNodes = [Version | Exts],
-    %% Now, find which of these are not already in the database.
     Fun = fun() ->
-		  lists:foldl(fun(SubNode, Acc) ->
-				      case mnesia:read({caps_features, {Node, SubNode}}) of
-					  [] ->
-					      [SubNode | Acc];
-					  _ ->
-					      Acc
-				      end
-			      end, [], SubNodes)
+		  case mnesia:read({caps_features, Caps#caps{jid = any, node = any}}) of
+		      [] ->
+			  case mnesia:read({caps_features, Caps}) of
+			      [] -> [Version];
+			      _ -> []
+			  end;
+		      _ ->
+			  []
+		  end
 	  end,
     case mnesia:transaction(Fun) of
 	{atomic, Missing} ->
@@ -220,8 +217,9 @@ handle_cast({note_caps, From,
 			  ejabberd_local:register_iq_response_handler
 			    (Host, ID, ?MODULE, handle_disco_response),
 			  ejabberd_router:route(jlib:make_jid("", Host, ""), From, Stanza),
-			  ?DICT:store(ID, {Node, SubNode}, Dict)
+			  ?DICT:store({From, ID}, {From, SubNode, Hash}, Dict)
 		  end, Requests, Missing),
+	    ?DEBUG("Requests: ~p", [NewRequests]),
 	    {noreply, State#state{disco_requests = NewRequests}};
 	Error ->
 	    ?ERROR_MSG("Transaction failed: ~p", [Error]),
@@ -231,20 +229,31 @@ handle_cast({disco_response, From, _To,
 	     #iq{type = Type, id = ID,
 		 sub_el = SubEls}},
 	    #state{disco_requests = Requests} = State) ->
+    ?DEBUG("Requests: ~p", [Requests]),
     case {Type, SubEls} of
-	{result, [{xmlelement, "query", _Attrs, Els}]} ->
-	    case ?DICT:find(ID, Requests) of
-		{ok, {Node, SubNode}} ->
+	{result, [{xmlelement, "query", _Attrs, Els} = QueryEl | _]} ->
+	    case ?DICT:find({From, ID}, Requests) of
+		{ok, {Node, Version, Hash}} ->
 		    Features =
 			lists:flatmap(fun({xmlelement, "feature", FAttrs, _}) ->
 					      [xml:get_attr_s("var", FAttrs)];
 					 (_) ->
 					      []
 				      end, Els),
+		    FeaturesHash = generate_ver_from_disco_result(QueryEl, Hash),
+		    ?DEBUG("Hash: ~p Version: ~p", [FeaturesHash, Version]),
 		    mnesia:transaction(
 		      fun() ->
-			      mnesia:write(#caps_features{node_pair = {Node, SubNode},
-							  features = Features})
+			      if
+				  FeaturesHash =:= Version ->
+				      mnesia:write(#caps_features{caps = #caps{jid = any, node = any,
+									       version = Version, hash = Hash},
+								 features = Features});
+				  true ->
+				      mnesia:write(#caps_features{caps = #caps{jid = From, node = Node,
+									       version = Version, hash = Hash},
+								  features = Features})
+			      end
 		      end),
 		    gen_server:cast(self(), visit_feature_queries);
 		error ->
@@ -252,12 +261,13 @@ handle_cast({disco_response, From, _To,
 	    end;
 	{error, _} ->
 	    %% XXX: if we get error, we cache empty feature not to probe the client continuously
-	    case ?DICT:find(ID, Requests) of
-		{ok, {Node, SubNode}} ->
+	    case ?DICT:find({From, ID}, Requests) of
+		{ok, {Node, Version, Hash}} ->
 		    Features = [],
 		    mnesia:transaction(
 		      fun() ->
-			      mnesia:write(#caps_features{node_pair = {Node, SubNode},
+			      mnesia:write(#caps_features{caps = #caps{jid = From, node = Node,
+								       version = Version, hash = Hash},
 							  features = Features})
 		      end),
 		    gen_server:cast(self(), visit_feature_queries);
@@ -272,7 +282,7 @@ handle_cast({disco_response, From, _To,
 	    %% Can't do anything about errors
 	    ok
     end,
-    NewRequests = ?DICT:erase(ID, Requests),
+    NewRequests = ?DICT:erase({From, ID}, Requests),
     {noreply, State#state{disco_requests = NewRequests}};
 handle_cast(visit_feature_queries, #state{feature_queries = FeatureQueries} = State) ->
     Timestamp = timestamp(),
@@ -301,3 +311,94 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%% http://www.xmpp.org/extensions/xep-0115.html#ver-gen
+generate_ver_from_disco_result(QueryEl, "sha-1") ->
+    generate_ver_from_disco_result1(QueryEl, fun crypto:sha/1);
+generate_ver_from_disco_result(QueryEl, "md5") ->
+    generate_ver_from_disco_result1(QueryEl, fun crypto:md5/1);
+generate_ver_from_disco_result(_QueryEl, _) ->
+    unknown.
+
+generate_ver_from_disco_result1(QueryEl, HashFun) ->
+    S = generate_ver_str_from_disco_result(QueryEl),
+    ?DEBUG("Calculated S for caps: ~p", [S]),
+    Digest = binary_to_list(HashFun(list_to_binary(S))),
+    jlib:encode_base64(Digest).
+
+generate_ver_str_from_disco_result({xmlelement, "query", _Attrs, Els}) ->
+    {IdentitiesUnsorted, FeaturesUnsorted,
+     FormsUnsorted} = lists:foldl(fun({xmlelement, "identity", Attrs, _}, {Identities, Features, Forms}) ->
+					  Category = xml:get_attr_s("category", Attrs),
+					  Type = xml:get_attr_s("type", Attrs),
+					  Lang = xml:get_attr_s("xml:lang", Attrs),
+					  Name = xml:get_attr_s("name", Attrs),
+					  {[{Category, Type, Lang, Name} | Identities], Features, Forms};
+				     ({xmlelement, "feature", Attrs, _}, {Identities, Features, Forms}) ->
+					  Var = xml:get_attr_s("var", Attrs),
+					  {Identities, [Var | Features], Forms};
+				     ({xmlelement, "x", Attrs, FormEls}, {Identities, Features, Forms}=Result) ->
+					  case xml:get_attr_s("xmlns", Attrs) of
+					      ?NS_XDATA ->
+						  {FormType, Fields} = form_get_type_and_fields(FormEls),
+						  {Identities, Features, [{FormType, Fields} | Forms]};
+					      _ ->
+						  Result
+					  end;
+				     (_, Result) ->
+					  Result
+				  end, {[], [], []}, Els),
+    Identities = lists:sort(IdentitiesUnsorted),
+    Features = lists:sort(FeaturesUnsorted),
+    Forms = lists:map(fun({FormType, FieldUnsorted}) ->
+			      Fields = lists:map(fun({Var, Values}) ->
+							 {Var, lists:sort(Values)}
+						 end, lists:sort(FieldUnsorted)),
+			      {FormType, Fields}
+		      end, lists:sort(fun({FormType1, _}, {FormType2, _}) ->
+					      FormType1 < FormType2
+				      end, FormsUnsorted)),
+    lists:flatten([lists:map(fun({Category, Type, Lang, Name}) ->
+				     [Category, "/", Type, "/", Lang, "/", Name, "<"]
+			     end, Identities),
+		   lists:map(fun(Feature) ->
+				     [Feature, "<"]
+			     end, Features),
+		   lists:map(fun({FormType, [Fields]}) ->
+				     [FormType, "<" |
+				      lists:map(fun({Var, Values}) ->
+							[Var, "<" |
+							 lists:map(fun(Value) ->
+									   [Value, "<"]
+								   end, Values)]
+						end, Fields)]
+			     end, Forms)]).
+
+form_get_type_and_fields(Els) ->
+    form_get_type_and_fields(Els, {"", []}).
+
+form_get_type_and_fields([{xmlelement, "field", Attrs, Els} | Rest], {FormType, Fields}) ->
+    case xml:get_attr_s("var", Attrs) of
+	"FORM_TYPE" ->
+	    case xml:get_subtag(Els, "value") of
+		false ->
+		    FormType2 = "";
+		{xmlelement, "value", _, ValueEls} ->
+		    FormType2 = xml:get_cdata(ValueEls)
+	    end,
+	    form_get_type_and_fields(Rest, {FormType2, Fields});
+	Var ->
+	    Values = lists:foldl(fun({xmlelement, "value", _, ValueEls}, Result) ->
+					 [xml:get_cdata(ValueEls) | Result];
+				    (_, Result) ->
+					 Result
+				 end, [], Els),
+	    Field = {Var, Values},
+	    form_get_type_and_fields(Rest, {FormType, [Field | Fields]})
+    end;
+
+form_get_type_and_fields([_ | Rest], Result) ->
+    form_get_type_and_fields(Rest, Result);
+
+form_get_type_and_fields([], Result) ->
+    Result.
