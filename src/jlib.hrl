@@ -73,6 +73,7 @@
 -define(NS_COMPRESS,     "http://jabber.org/protocol/compress").
 
 -define(NS_CAPS,          "http://jabber.org/protocol/caps").
+-define(NS_PING,         "urn:xmpp:ping").
 
 % TODO: remove "code" attribute (currently it used for backward-compatibility)
 -define(STANZA_ERROR(Code, Type, Condition),

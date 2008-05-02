@@ -442,6 +442,7 @@
 		 ]},
   %%{mod_muc_log,[]},
   {mod_offline,  []},
+  {mod_ping,     []},
   {mod_privacy,  []},
   {mod_private,  []},
   %%{mod_proxy65,[]},
