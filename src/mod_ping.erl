@@ -40,11 +40,13 @@
 
 start(Host, Opts) ->
     IQDisc = gen_mod:get_opt(iqdisc, Opts, one_queue),
+    mod_disco:register_feature(Host, ?NS_PING),
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_PING,
 				  ?MODULE, process_local_iq, IQDisc).
 
 stop(Host) ->
-    gen_iq_handler:remove_iq_handler(ejabberd_local, Host, ?NS_PING).
+    gen_iq_handler:remove_iq_handler(ejabberd_local, Host, ?NS_PING),
+    mod_disco:unregister_feature(Host, ?NS_PING).
 
 
 process_local_iq(_From, _To, #iq{id = _ID, type = Type,
