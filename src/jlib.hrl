@@ -74,6 +74,11 @@
 
 -define(NS_CAPS,          "http://jabber.org/protocol/caps").
 
+-define(NS_STREAM_INITIATION, "http://jabber.org/protocol/si").
+-define(PROFILE_FILE_TRANSFER, "http://jabber.org/protocol/si/profile/file-transfer").
+-define(NS_FILE_TRANSFER, "http://jabber.org/protocol/si/profile/file-transfer").
+-define(NS_FEATURE_NEG, "http://jabber.org/protocol/feature-neg").
+
 % TODO: remove "code" attribute (currently it used for backward-compatibility)
 -define(STANZA_ERROR(Code, Type, Condition),
 	{xmlelement, "error",

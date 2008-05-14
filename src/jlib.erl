@@ -422,7 +422,7 @@ iq_type_to_string(error) -> "error";
 iq_type_to_string(_) -> invalid.
 
 
-iq_to_xml(#iq{id = ID, type = Type, sub_el = SubEl}) ->
+iq_to_xml(#iq{id = ID, type = Type, sub_el = SubEl}) when is_list(SubEl) ->
     if
 	ID /= "" ->
 	    {xmlelement, "iq",
@@ -430,8 +430,9 @@ iq_to_xml(#iq{id = ID, type = Type, sub_el = SubEl}) ->
 	true ->
 	    {xmlelement, "iq",
 	     [{"type", iq_type_to_string(Type)}], SubEl}
-    end.
-
+    end;
+iq_to_xml(IQ = #iq{sub_el = SubEl}) ->
+    iq_to_xml(IQ#iq{sub_el = [SubEl]}).
 
 parse_xdata_submit(El) ->
     {xmlelement, _Name, Attrs, Els} = El,
