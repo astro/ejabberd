@@ -169,15 +169,74 @@ code_change(_OldVsn, State, _Extra) ->
 %%% IQ Processing
 %%%------------------------
 
+-define(IDENTITY(Category, Type, Name), {xmlelement, "identity",
+					 [{"category", Category},
+					  {"type", Type},
+					  {"name", Name}], []}).
+-define(FEATURE(Var), {xmlelement, "feature", [{"var", Var}], []}).
+-define(ITEM(JID, Node, Name), {xmlelement, "item",
+				[{"jid", case JID of
+					     #jid{} -> jlib:jid_to_string(JID);
+					     _ -> JID
+					 end},
+				 {"node", Node},
+				 {"name", Name}], []}).
+
 %% disco#info request
-process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_INFO} = IQ, _) ->
+process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_INFO, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, _) ->
+    Node = xml:get_attr_s("node", QueryAttrs),
+    Info = case Node of
+	       "" ->
+		   [
+		    ?IDENTITY("store", "file", "File Storage"),
+		    ?FEATURE(?NS_DISCO_INFO),
+		    ?FEATURE(?NS_DISCO_ITEMS),
+		    ?FEATURE(?NS_BYTESTREAMS),
+		    ?FEATURE(?NS_STREAM_INITIATION),
+		    ?FEATURE("presence"),
+		    ?FEATURE(?NS_COMMANDS),
+		    ?FEATURE(?NS_XDATA)
+		   ];
+	       ?NS_COMMANDS ->
+		   [
+		    ?IDENTITY("automation", "command-node", "File operations"),
+		    ?FEATURE(?NS_COMMANDS),
+		    ?FEATURE(?NS_XDATA)
+		   ];
+	       _ ->
+		   []
+	   end,
     IQ#iq{type = result, sub_el =
-	  [{xmlelement, "query", [{"xmlns", ?NS_DISCO_INFO}], []}]};
+	  [{xmlelement, "query",
+	    [{"xmlns", ?NS_DISCO_INFO},
+	     {"node", Node}],
+	    Info}]};
 
 %% disco#items request
-process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS} = IQ, _) ->
+process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, #state{my_jid = MyJID}) ->
+    Node = xml:get_attr_s("node", QueryAttrs),
+    Items = case Node of
+		"" ->
+		    [
+		     ?ITEM(MyJID, ?NS_COMMANDS, "File operations")
+		    ];
+		?NS_COMMANDS ->
+		    [
+		     ?ITEM(MyJID, "browse", "Browse and retrieve files"),
+		     ?ITEM(MyJID, "delete", "Delete files")
+		    ];
+		_ ->
+		    []
+	    end,
     IQ#iq{type = result, sub_el =
-	  [{xmlelement, "query", [{"xmlns", ?NS_DISCO_ITEMS}], []}]};
+	  [{xmlelement, "query",
+	    [{"xmlns", ?NS_DISCO_ITEMS},
+	     {"node", Node}],
+	    Items}]};
+
+%% Command execution
+process_iq(_, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = {xmlelement, "command", CommandAttrs, CommandChildren}} = IQ, _) ->
+    IQ#iq
 
 %% File-transfer offer
 process_iq(From,

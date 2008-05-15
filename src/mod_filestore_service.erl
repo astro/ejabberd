@@ -50,7 +50,28 @@ terminate(_Reason, #state{myhost = MyHost}) ->
     ejabberd_router:unregister_route(MyHost),
     ok.
 
-handle_info({route, From, To, Packet}=Info, State=#state{nodes = Nodes}) ->
+% Packet directed to component
+handle_info({route, From, To = #jid{user = "", resource = ""}, Packet}, State) ->
+    case Packet of
+	{xmlelement, "iq", _, _} ->
+	    IQ = jlib:iq_query_info(Packet),
+	    case catch process_iq(From, IQ, State) of
+		Result when is_record(Result, iq) ->
+		    ejabberd_router:route(To, From, jlib:iq_to_xml(Result));
+		{'EXIT', Reason} ->
+		    ?ERROR_MSG("Error when processing IQ stanza: ~p", [Reason]),
+		    Err = jlib:make_error_reply(Packet, ?ERR_INTERNAL_SERVER_ERROR),
+		    ejabberd_router:route(To, From, Err);
+		_ ->
+		    ok
+	    end;
+	_ ->
+	    ok
+    end,
+    {noreply, State};
+
+% Packet directed to node@component
+handle_info({route, From, To = #jid{resource = ""}, Packet}=Info, State=#state{nodes = Nodes}) ->
     case node_pid(To#jid.user, Nodes) of
 	not_found ->
 	    Err = jlib:make_error_reply(Packet, ?ERR_ITEM_NOT_FOUND),
@@ -71,3 +92,44 @@ node_pid(Node, [_ | Nodes]) ->
     node_pid(Node, Nodes);
 node_pid(_, []) ->
     not_found.
+
+%%%------------------------
+%%% IQ Processing
+%%%------------------------
+
+-define(FEATURE(Var), {xmlelement, "feature", [{"var", Var}], []}).
+
+%% disco#info request
+process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_INFO} = IQ, _) ->
+    IQ#iq{type = result, sub_el =
+	  [{xmlelement, "query",
+	    [{"xmlns", ?NS_DISCO_INFO}],
+	    [{xmlelement, "identity",
+	      [{"category", "hierarchy"},
+	       {"type", "branch"},
+	       {"name", "Online File Storage"}],
+	      []},
+	     ?FEATURE(?NS_DISCO_INFO),
+	     ?FEATURE(?NS_DISCO_ITEMS)
+	    ]}]};
+
+%% disco#items request
+process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS} = IQ, #state{myhost = MyHost, nodes = Nodes}) ->
+    IQ#iq{type = result, sub_el =
+	  [{xmlelement, "query", [{"xmlns", ?NS_DISCO_ITEMS}],
+	    lists:map(fun({Node, _Pid}) ->
+			      {xmlelement, "item",
+			       [{"name", Node},
+				{"jid", Node ++ "@" ++ MyHost}],
+			       []}
+		      end, Nodes)
+	   }]};
+
+%% Unknown "set" or "get" request
+process_iq(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
+    ?DEBUG("unknown IQ: ~p",[IQ]),
+    IQ#iq{type = error, sub_el = [SubEl, ?ERR_SERVICE_UNAVAILABLE]};
+
+%% IQ "result" or "error".
+process_iq(_, _, _) ->
+    ok.
