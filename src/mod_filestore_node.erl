@@ -15,6 +15,7 @@
 
 -include("ejabberd.hrl").
 -include("jlib.hrl").
+-include("adhoc.hrl").
 
 %%====================================================================
 %% API
@@ -102,7 +103,7 @@ handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
 	    ejabberd_router:route(MyJID, From, jlib:iq_to_xml(Reply)),
 	    ets:insert(Transfers, Transfer#transfer{state = receiving,
 						    request_stanza = undefined}),
-	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, FileName), FileSize});
+	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, From, FileName), FileSize});
 	error ->
 	    ignore
     end,
@@ -235,8 +236,14 @@ process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "qu
 	    Items}]};
 
 %% Command execution
-process_iq(_, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = {xmlelement, "command", CommandAttrs, CommandChildren}} = IQ, _) ->
-    IQ#iq
+process_iq(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, _) ->
+    case adhoc:parse_request(IQ) of
+	{error, Err} ->
+	    IQ#iq{type = error, sub_el = [SubEl, Err]};
+	#adhoc_request{} = Req ->
+	    #adhoc_response{} = Resp = process_adhoc(From, Req),
+	    IQ#iq{type = result, sub_el = [adhoc:produce_response(Resp)]}
+    end;
 
 %% File-transfer offer
 process_iq(From,
@@ -312,6 +319,69 @@ process_iq(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
 process_iq(_, _, _) ->
     ok.
 
+process_adhoc(_, #adhoc_request{action = "cancel", node = Node}) ->
+    #adhoc_response{status = canceled, node = Node};
+
+process_adhoc(_, #adhoc_request{node = "browse", xdata = false}) ->
+    #adhoc_response{node = "browse",
+		    status = executing,
+		    defaultaction = "next", actions = ["next"],
+		    elements = [{xmlelement, "x",
+				 [{"xmlns", ?NS_XDATA},
+				  {"type", "form"}],
+				 [{xmlelement, "title", [],
+				   [{xmlcdata, "Browse/get files of a user"}]},
+				  {xmlelement, "instructions", [],
+				   [{xmlcdata, "Enter the Jabber-Id of the user whose files you want to browse."}]},
+				  {xmlelement, "field",
+				   [{"var", "jid"},
+				    {"label", "Jabber-Id"},
+				    {"type", "jid-single"}], []}
+				  ]}]
+		    };
+
+process_adhoc(_, #adhoc_request{node = "browse",
+				xdata = XData}) ->
+    FieldValues = jlib:parse_xdata_submit(XData),
+    {value, {"jid", [JID]}} = lists:keysearch("jid", 1, FieldValues),
+    #adhoc_response{node = "browse",
+		    status = executing,
+		    % TODO: prev
+		    defaultaction = "complete", actions = ["complete"],
+		    elements = [{xmlelement, "x",
+				 [{"xmlns", ?NS_XDATA},
+				  {"type", "form"}],
+				 [{xmlelement, "title", [],
+				   [{xmlcdata, "Browse/get files of user " ++ JID}]},
+				  {xmlelement, "instructions", [],
+				   [{xmlcdata, "Select the files you would like to receive."}]},
+				  {xmlelement, "field",
+				   [{"var", "jid"},
+				    {"type", "hidden"}],
+				   [{xmlelement, "value", [],
+				     [{xmlcdata, JID}]}]},
+				  {xmlelement, "field",
+				   [{"var", "files"},
+				    {"label", "Files"},
+				    {"type", "list-multi"}],
+				   [{xmlelement, "option",
+				     [{"label", "File 1 (8 KB)"}],
+				     [{xmlelement, "value", [],
+				       [{xmlcdata, "file1"}]}]},
+				    {xmlelement, "option",
+				     [{"label", "File 2 (8 MB)"}],
+				     [{xmlelement, "value", [],
+				       [{xmlcdata, "file2"}]}]},
+				    {xmlelement, "option",
+				     [{"label", "File 3 (8 GB)"}],
+				     [{xmlelement, "value", [],
+				       [{xmlcdata, "file3"}]}]}]}
+				 ]}]
+		    };
+
+process_adhoc(_, R) ->
+    ?DEBUG("Unknown adhoc response: ~p",[R]).
+
 si_find_stream_methods(SI) ->
     {xmlelement, "feature", FeatureNegAttrs, FeatureNegChildren} = xml:get_subtag(SI, "feature"),
     ?NS_FEATURE_NEG = xml:get_attr_s("xmlns", FeatureNegAttrs),
@@ -364,9 +434,15 @@ transfer_by_stream_pid(StreamPid, Transfers) ->
 		      R
 	      end, error, Transfers).
 
-file_path(#state{basepath = Basepath}, FilePath) ->
+file_path(#state{basepath = Basepath},
+	  #jid{user = User, server = Server},
+	  FilePath)
+  when User =/= ".", User =/= "..",
+       Server =/= ".", Server =/= "..",
+       FilePath =/= ".", FilePath =/= ".." ->
+    UserName = jlib:jid_to_string(#jid{user = User, server = Server}),
     FileName = lists:last(string:tokens(FilePath, "/")),
-    Basepath ++ "/" ++ FileName.
+    Basepath ++ "/" ++ UserName ++ "/" ++ FileName.
 
 
 % TODO: quota with transfers
