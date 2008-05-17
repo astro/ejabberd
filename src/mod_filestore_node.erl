@@ -368,3 +368,5 @@ file_path(#state{basepath = Basepath}, FilePath) ->
     FileName = lists:last(string:tokens(FilePath, "/")),
     Basepath ++ "/" ++ FileName.
 
+
+% TODO: quota with transfers
