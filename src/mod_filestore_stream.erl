@@ -150,6 +150,7 @@ handle_info(_Info, StateName, State) ->
 %% Reason. The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, _StateName, _State) ->
+    % TODO: delete 0-byte files
     ok.
 
 %%--------------------------------------------------------------------

@@ -4,13 +4,13 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/3]).
+-export([start_link/4]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
--record(state, {my_jid, opts, basepath, transfers}).
+-record(state, {host, my_jid, opts, basepath, transfers}).
 -record(transfer, {jid_sid, state, filename, filesize, stream_pid, request_stanza}).
 
 -include_lib("kernel/include/file.hrl").
@@ -25,8 +25,8 @@
 %% Function: start_link() -> {Node,Pid} | ignore | {error,Error}
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start_link(Node, Host, Opts) ->
-    {ok, Pid} = gen_server:start_link(?MODULE, [jlib:make_jid(Node, Host, ""), Opts], []),
+start_link(Host, Node, MyHost, Opts) ->
+    {ok, Pid} = gen_server:start_link(?MODULE, [Host, jlib:make_jid(Node, MyHost, ""), Opts], []),
     {Node, Pid}.
 
 %%====================================================================
@@ -40,13 +40,13 @@ start_link(Node, Host, Opts) ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([MyJID, Opts]) ->
+init([Host, MyJID, Opts]) ->
     Basepath = "/tmp/" ++ jlib:jid_to_string(MyJID),
     file:make_dir(Basepath),
 
     process_flag(trap_exit, true),
     Transfers = ets:new(transfers, [set, {keypos, #state.my_jid}]),
-    {ok, #state{basepath = Basepath, my_jid = MyJID, opts = Opts, transfers = Transfers}}.
+    {ok, #state{host = Host, basepath = Basepath, my_jid = MyJID, opts = Opts, transfers = Transfers}}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -68,11 +68,13 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
-    IQ = jlib:iq_query_info(Packet),
+    ?DEBUG("Packet: ~p",[Packet]),
+    IQ = jlib:iq_query_or_response_info(Packet),
+    ?DEBUG("IQ: ~p",[IQ]),
     case catch process_iq(From, IQ, State) of
 	Result when is_record(Result, iq) ->
 	    ejabberd_router:route(To, From, jlib:iq_to_xml(Result));
-	{'EXIT', Reason} ->
+	{'EXIT', Reason} when IQ#iq.type =/= error ->
 	    ?ERROR_MSG("Error when processing IQ stanza: ~p", [Reason]),
 	    Err = jlib:make_error_reply(Packet, ?ERR_INTERNAL_SERVER_ERROR),
 	    ejabberd_router:route(To, From, Err);
@@ -313,13 +315,55 @@ process_iq(From,
 	    IQ#iq{type = error, sub_el = [SubEl, ?ERR_UNEXPECTED_REQUEST]}
     end;
 
+%% File-transfer accept
+process_iq(From,
+	   #iq{type = result, id = ID, xmlns = ?NS_STREAM_INITIATION} = IQ,
+	   #state{transfers = Transfers} = State) ->
+    ?DEBUG("File-transfer accept: ~p",[IQ]),
+    case transfers_by_jid_request_id(From, ID, Transfers) of
+	[#transfer{state = offer_sent, jid_sid = {From, SID}} = Transfer | _] ->
+	    IQ2 = #iq{id = randoms:get_string(),
+		      type = set,
+		      sub_el = [{xmlelement, "query",
+				 [{"xmlns", ?NS_BYTESTREAMS},
+				  {"sid", SID},
+				  {"mode", "tcp"}],
+				 lists:map(fun({StreamHostJID, Host, Port}) ->
+						   {xmlelement, "streamhost",
+						    [{"jid", StreamHostJID},
+						     {"host", Host},
+						     {"port", io_lib:format("~B", [Port])}], []}
+					   end, mod_filestore_service:get_streamhosts(State#state.host))}]},
+	    ets:insert(Transfers, Transfer#transfer{state = streamhosts_sent,
+						    request_stanza = IQ2}),
+	    IQ2;
+	[] ->
+	    IQ#iq{type = error, sub_el = [IQ#iq.sub_el, ?ERR_GONE]}
+    end;
+
+%% Generic transfer refuse/error
+process_iq(From,
+	   #iq{type = error, id = ID}, #state{transfers = Transfers}) ->
+    Stale = transfers_by_jid_request_id(From, ID, Transfers),
+    lists:foreach(fun(#transfer{jid_sid = JIDSID, stream_pid = StreamPid}) ->
+			  if
+			      is_pid(StreamPid) ->
+				  % We will receive 'EXIT' then, no need to remove here
+				  exit(StreamPid, error);
+			      true ->
+				  ets:delete(Transfers, JIDSID)
+			  end
+		  end, Stale),
+    ok;
+
 %% Unknown "set" or "get" request
 process_iq(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
     ?DEBUG("unknown IQ: ~p",[IQ]),
     IQ#iq{type = error, sub_el = [SubEl, ?ERR_SERVICE_UNAVAILABLE]};
 
 %% IQ "result" or "error".
-process_iq(_, _, _) ->
+process_iq(_, IQ, _) ->
+    ?DEBUG("unknown IQ: ~p",[IQ]),
     ok.
 
 process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
@@ -478,6 +522,13 @@ transfer_by_stream_pid(StreamPid, Transfers) ->
 		 (_, R) ->
 		      R
 	      end, error, Transfers).
+
+transfers_by_jid_request_id(JID, ID, Transfers) ->
+    ets:foldl(fun(#transfer{jid_sid = {JID2, _},
+			    request_stanza = #iq{id = ID2}} = T, R)
+		 when JID =:= JID2, ID =:= ID2 -> [T | R];
+		 (_, R) -> R
+	      end, [], Transfers).
 
 %%
 %% File location
