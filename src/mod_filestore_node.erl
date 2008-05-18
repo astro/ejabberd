@@ -13,6 +13,7 @@
 -record(state, {my_jid, opts, basepath, transfers}).
 -record(transfer, {jid_sid, state, filename, filesize, stream_pid, request_stanza}).
 
+-include_lib("kernel/include/file.hrl").
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 -include("adhoc.hrl").
@@ -103,6 +104,7 @@ handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
 	    ejabberd_router:route(MyJID, From, jlib:iq_to_xml(Reply)),
 	    ets:insert(Transfers, Transfer#transfer{state = receiving,
 						    request_stanza = undefined}),
+	    file:make_dir(user_path(State, From)),
 	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, From, FileName), FileSize});
 	error ->
 	    ignore
@@ -123,6 +125,7 @@ handle_info({'EXIT', Pid, Reason},
 	    State = #state{my_jid = MyJID, transfers = Transfers}) ->
     case transfer_by_stream_pid(Pid, Transfers) of
 	Transfer = #transfer{jid_sid = {From, _}, request_stanza = IQ} ->
+	    ?DEBUG("Transfer of ~p ended.", [Transfer#transfer.filename]),
 	    ets:delete(Transfers, Transfer#transfer.jid_sid),
 	    if
 		is_record(IQ, iq) ->
@@ -236,12 +239,12 @@ process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "qu
 	    Items}]};
 
 %% Command execution
-process_iq(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, _) ->
+process_iq(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, State) ->
     case adhoc:parse_request(IQ) of
 	{error, Err} ->
 	    IQ#iq{type = error, sub_el = [SubEl, Err]};
 	#adhoc_request{} = Req ->
-	    #adhoc_response{} = Resp = process_adhoc(From, Req),
+	    #adhoc_response{} = Resp = process_adhoc(From, Req, State),
 	    IQ#iq{type = result, sub_el = [adhoc:produce_response(Resp)]}
     end;
 
@@ -262,7 +265,7 @@ process_iq(From,
     true = lists:member(?NS_BYTESTREAMS, StreamMethods),
     
     ets:insert(Transfers, #transfer{jid_sid = {From, SID},
-				    state = offered,
+				    state = offer_received,
 				    filename = FileName,
 				    filesize = FileSize}),
     
@@ -290,7 +293,7 @@ process_iq(From,
 	   #state{my_jid = MyJID, transfers = Transfers}) ->
     SID = xml:get_attr_s("sid", QueryAttrs),
     case ets:lookup(Transfers, {From, SID}) of
-	[#transfer{state = offered} = Transfer] ->
+	[#transfer{state = offer_received} = Transfer] ->
 	    case xml:get_attr_s("mode", QueryAttrs) of
 		Mode when Mode == ""; Mode == "tcp" ->
 		    StreamHosts = bytestreams_query_streamhosts(QueryChildren),
@@ -319,10 +322,10 @@ process_iq(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
 process_iq(_, _, _) ->
     ok.
 
-process_adhoc(_, #adhoc_request{action = "cancel", node = Node}) ->
+process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
     #adhoc_response{status = canceled, node = Node};
 
-process_adhoc(_, #adhoc_request{node = "browse", xdata = false}) ->
+process_adhoc(_, #adhoc_request{node = "browse", xdata = false}, _) ->
     #adhoc_response{node = "browse",
 		    status = executing,
 		    defaultaction = "next", actions = ["next"],
@@ -340,47 +343,89 @@ process_adhoc(_, #adhoc_request{node = "browse", xdata = false}) ->
 				  ]}]
 		    };
 
-process_adhoc(_, #adhoc_request{node = "browse",
-				xdata = XData}) ->
+process_adhoc(From, #adhoc_request{node = "browse",
+				   xdata = XData}, State) ->
     FieldValues = jlib:parse_xdata_submit(XData),
     {value, {"jid", [JID]}} = lists:keysearch("jid", 1, FieldValues),
-    #adhoc_response{node = "browse",
-		    status = executing,
-		    % TODO: prev
-		    defaultaction = "complete", actions = ["complete"],
-		    elements = [{xmlelement, "x",
-				 [{"xmlns", ?NS_XDATA},
-				  {"type", "form"}],
-				 [{xmlelement, "title", [],
-				   [{xmlcdata, "Browse/get files of user " ++ JID}]},
-				  {xmlelement, "instructions", [],
-				   [{xmlcdata, "Select the files you would like to receive."}]},
-				  {xmlelement, "field",
-				   [{"var", "jid"},
-				    {"type", "hidden"}],
-				   [{xmlelement, "value", [],
-				     [{xmlcdata, JID}]}]},
-				  {xmlelement, "field",
-				   [{"var", "files"},
-				    {"label", "Files"},
-				    {"type", "list-multi"}],
-				   [{xmlelement, "option",
-				     [{"label", "File 1 (8 KB)"}],
-				     [{xmlelement, "value", [],
-				       [{xmlcdata, "file1"}]}]},
-				    {xmlelement, "option",
-				     [{"label", "File 2 (8 MB)"}],
-				     [{xmlelement, "value", [],
-				       [{xmlcdata, "file2"}]}]},
-				    {xmlelement, "option",
-				     [{"label", "File 3 (8 GB)"}],
-				     [{xmlelement, "value", [],
-				       [{xmlcdata, "file3"}]}]}]}
-				 ]}]
-		    };
+    case lists:keysearch("files", 1, FieldValues) of
+	false ->
+	    #adhoc_response{node = "browse",
+			    status = executing,
+						% TODO: prev
+			    defaultaction = "complete", actions = ["complete"],
+			    elements = [{xmlelement, "x",
+					 [{"xmlns", ?NS_XDATA},
+					  {"type", "form"}],
+					 [{xmlelement, "title", [],
+					   [{xmlcdata, "Browse/get files of user " ++ JID}]},
+					  {xmlelement, "instructions", [],
+					   [{xmlcdata, "Select the files you would like to receive."}]},
+					  {xmlelement, "field",
+					   [{"var", "jid"},
+					    {"type", "hidden"}],
+					   [{xmlelement, "value", [],
+					     [{xmlcdata, JID}]}]},
+					  {xmlelement, "field",
+					   [{"var", "files"},
+					    {"label", "Files"},
+					    {"type", "list-multi"}],
+					   lists:map(fun({File, Size}) ->
+							     {xmlelement, "option",
+							      [{"label", io_lib:format("~s (~B Bytes)", [File, Size])}],
+							      [{xmlelement, "value", [],
+								[{xmlcdata, File}]}]}
+						     end, user_files(State, JID))
+					  }]}]
+			   };
+	{value, {"files", Files}} ->
+	    lists:foreach(fun(File) ->
+				  offer_file(From, file_path(State, JID, File), State)
+			  end, Files),
+	    #adhoc_response{node = "browse",
+			    status = completed}
+    end;
 
-process_adhoc(_, R) ->
+process_adhoc(_, R, _) ->
     ?DEBUG("Unknown adhoc response: ~p",[R]).
+
+offer_file(To, FilePath, #state{my_jid = MyJID, transfers = Transfers}) ->
+    SID = randoms:get_string(),
+    {ok, #file_info{size = FileSize}} = file:read_file_info(FilePath),
+    IQ = #iq{id = randoms:get_string(),
+	     type = set,
+	     sub_el = [{xmlelement, "si",
+			[{"xmlns", ?NS_STREAM_INITIATION},
+			 {"id", SID},
+			 {"profile", ?PROFILE_FILE_TRANSFER}],
+			[{xmlelement, "file",
+			  [{"xmlns", ?NS_FILE_TRANSFER},
+			   {"name", lists:last(string:tokens(FilePath, "/"))},
+			   {"size", io_lib:format("~B", [FileSize])}],
+			  []},
+			 {xmlelement, "feature",
+			  [{"xmlns", ?NS_FEATURE_NEG}],
+			  [{xmlelement, "x",
+			    [{"xmlns", ?NS_XDATA},
+			     {"type", "form"}],
+			    [{xmlelement, "field",
+			      [{"var", "stream-method"},
+			       {"type", "list-single"}],
+			      [{xmlelement, "option", [],
+				[{xmlelement, "value", [],
+				  [{xmlcdata, ?NS_BYTESTREAMS}]
+				  }]}]}]}]
+			  }]}]},
+    ejabberd_router:route(MyJID, To, jlib:iq_to_xml(IQ)),
+    ets:insert(Transfers, #transfer{jid_sid = {To, SID},
+				    filename = FilePath,
+				    filesize = FileSize,
+				    state = offer_sent,
+				    request_stanza = IQ}),
+    ok.
+
+%%
+%% Helper functions
+%%
 
 si_find_stream_methods(SI) ->
     {xmlelement, "feature", FeatureNegAttrs, FeatureNegChildren} = xml:get_subtag(SI, "feature"),
@@ -434,15 +479,43 @@ transfer_by_stream_pid(StreamPid, Transfers) ->
 		      R
 	      end, error, Transfers).
 
-file_path(#state{basepath = Basepath},
-	  #jid{user = User, server = Server},
-	  FilePath)
-  when User =/= ".", User =/= "..",
-       Server =/= ".", Server =/= "..",
-       FilePath =/= ".", FilePath =/= ".." ->
-    UserName = jlib:jid_to_string(#jid{user = User, server = Server}),
-    FileName = lists:last(string:tokens(FilePath, "/")),
-    Basepath ++ "/" ++ UserName ++ "/" ++ FileName.
+%%
+%% File location
+%%
 
+file_path(State, JID, FilePath) ->
+    UserPath = user_path(State, JID),
+    FileName = lists:last(string:tokens(FilePath, "/")),
+    [_ | _] = FileName,
+    true = (FileName =/= "."),
+    true = (FileName =/= ".."),
+    UserPath ++ "/" ++ FileName.
+
+user_path(#state{basepath = Basepath},
+	  #jid{user = User, server = Server}) ->
+    UserName = jlib:jid_to_string(#jid{user = User, server = Server, resource = ""}),
+    UserName2 = lists:last(string:tokens(UserName, "/")),
+    [_ | _] = UserName2,
+    true = (UserName2 =/= "."),
+    true = (UserName2 =/= ".."),
+    Basepath ++ "/" ++ UserName2;
+user_path(State, JID) when is_list(JID) ->
+    user_path(State, jlib:string_to_jid(JID)).
+
+% -> [{Name, Size}]
+user_files(State, JID) ->
+    UserPath = user_path(State, JID),
+    case file:list_dir(UserPath) of
+	{ok, Files} ->
+	    lists:map(fun(File) ->
+			      case file:read_file_info(UserPath ++ "/" ++ File) of
+				  {ok, #file_info{size = Size}} -> FileSize = Size;
+				  _ -> FileSize = 0
+			      end,
+			      {File, FileSize}
+		      end, Files);
+	{error, _} ->
+	    []
+    end.
 
 % TODO: quota with transfers
