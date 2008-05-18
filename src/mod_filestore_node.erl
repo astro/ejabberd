@@ -45,7 +45,7 @@ init([Host, MyJID, Opts]) ->
     file:make_dir(Basepath),
 
     process_flag(trap_exit, true),
-    Transfers = ets:new(transfers, [set, {keypos, #state.my_jid}]),
+    Transfers = ets:new(transfers, [set, {keypos, #transfer.jid_sid}]),
     {ok, #state{host = Host, basepath = Basepath, my_jid = MyJID, opts = Opts, transfers = Transfers}}.
 
 %%--------------------------------------------------------------------
@@ -271,6 +271,7 @@ process_iq(From,
 				    filename = FileName,
 				    filesize = FileSize}),
     
+    ?DEBUG("Accepted file ~p (~p Bytes) from ~p (~p)", [FileName, FileSize, From, SID]),
     IQ#iq{type = result, sub_el = [{xmlelement, "si",
 				    [{"xmlns", ?NS_STREAM_INITIATION}],
 				    [{xmlelement, "feature",
@@ -294,6 +295,7 @@ process_iq(From,
 	   #iq{type = set, xmlns = ?NS_BYTESTREAMS, sub_el = {xmlelement, "query", QueryAttrs, QueryChildren} = SubEl} = IQ,
 	   #state{my_jid = MyJID, transfers = Transfers}) ->
     SID = xml:get_attr_s("sid", QueryAttrs),
+    ?DEBUG("Bytestreams initiation from ~p (~p)", [From,SID]),
     case ets:lookup(Transfers, {From, SID}) of
 	[#transfer{state = offer_received} = Transfer] ->
 	    case xml:get_attr_s("mode", QueryAttrs) of
