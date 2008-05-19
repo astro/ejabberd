@@ -446,7 +446,8 @@ process_iq2(_, IQ, _) ->
 process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
     #adhoc_response{status = canceled, node = Node};
 
-process_adhoc(_, #adhoc_request{node = "browse", xdata = false}, _) ->
+process_adhoc(_, #adhoc_request{node = "browse", action = Action, xdata = XData}, _)
+  when XData == false; Action == "prev" ->
     #adhoc_response{node = "browse",
 		    status = executing,
 		    defaultaction = "next", actions = ["next"],
@@ -473,7 +474,7 @@ process_adhoc(From, #adhoc_request{node = "browse",
 	    #adhoc_response{node = "browse",
 			    status = executing,
 						% TODO: prev
-			    defaultaction = "complete", actions = ["complete"],
+			    defaultaction = "complete", actions = ["prev", "complete"],
 			    elements = [{xmlelement, "x",
 					 [{"xmlns", ?NS_XDATA},
 					  {"type", "form"}],
