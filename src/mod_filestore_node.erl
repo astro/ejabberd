@@ -441,8 +441,23 @@ process_iq2(_, _, _) ->
 process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
     #adhoc_response{status = canceled, node = Node};
 
-process_adhoc(_, #adhoc_request{node = "browse", action = Action, xdata = XData}, _)
+process_adhoc(From, #adhoc_request{node = "browse", action = Action, xdata = XData}, _)
   when XData == false; Action == "prev" ->
+    % JID from prev or default to user himself
+    FromBare = jlib:jid_to_string(#jid{user = From#jid.user,
+				       server = From#jid.server,
+				       resource = ""}),
+    case XData of
+	{xmlelement, _, _, _} ->
+	    FieldValues = jlib:parse_xdata_submit(XData),
+	    case lists:keysearch("jid", 1, FieldValues) of
+		{value, {"jid", [JID2]}} -> JID = JID2;
+		_ -> JID = FromBare
+	    end;
+	_ ->
+	    JID = FromBare
+    end,
+
     #adhoc_response{node = "browse",
 		    status = executing,
 		    defaultaction = "next", actions = ["next"],
@@ -456,8 +471,9 @@ process_adhoc(_, #adhoc_request{node = "browse", action = Action, xdata = XData}
 				  {xmlelement, "field",
 				   [{"var", "jid"},
 				    {"label", "Jabber-Id"},
-				    {"type", "jid-single"}], []}
-				  ]}]
+				    {"type", "jid-single"}],
+				   [{xmlelement, "value", [], [{xmlcdata, JID}]}]}
+				 ]}]
 		    };
 
 process_adhoc(From, #adhoc_request{node = "browse",
@@ -501,6 +517,8 @@ process_adhoc(From, #adhoc_request{node = "browse",
 	    #adhoc_response{node = "browse",
 			    status = completed}
     end;
+
+% TODO: delete, statistics
 
 process_adhoc(_, R, _) ->
     ?DEBUG("Unknown adhoc response: ~p",[R]).
@@ -659,7 +677,7 @@ user_path(State, JID) when is_list(JID) ->
 % -> [{Name, Size}]
 user_files(State, JID) ->
     UserPath = user_path(State, JID),
-    case lists:sort(file:list_dir(UserPath)) of
+    case file:list_dir(UserPath) of
 	{ok, Files} ->
 	    lists:map(fun(File) ->
 			      case file:read_file_info(UserPath ++ "/" ++ File) of
@@ -667,7 +685,7 @@ user_files(State, JID) ->
 				  _ -> FileSize = 0
 			      end,
 			      {File, FileSize}
-		      end, Files);
+		      end, lists:sort(Files));
 	{error, _} ->
 	    []
     end.
