@@ -72,8 +72,15 @@ unconnected(_, State) ->
     {stop, cannot_connect, State}.
 
 established({receive_file, Path, Size}, State = #state{socket = Socket}) ->
+    ?DEBUG("receive_file ~p ~p",[Path,Size]),
     {ok, File} = file:open(Path, [write, raw, binary]),
-    catch receive_to_file(Socket, File, Size),
+    receive_to_file(Socket, File, Size),
+    file:close(File),
+    {stop, normal, State};
+established({send_file, Path}, State = #state{socket = Socket}) ->
+    ?DEBUG("send_file ~p",[Path]),
+    {ok, File} = file:open(Path, [read, raw, binary]),
+    send_from_file(Socket, File),
     file:close(File),
     {stop, normal, State}.
 
@@ -207,4 +214,14 @@ receive_to_file(Socket, File, Size) ->
 	    receive_to_file(Socket, File, Size - size(Data));
 	true ->
 	    done
+    end.
+
+send_from_file(Socket, File) ->
+    case file:read(File, 512) of
+	{ok, Data} ->
+	    %?DEBUG("~p reads ~p bytes",[File,size(Data)]),
+	    ok = gen_tcp:send(Socket, Data),
+	    send_from_file(Socket, File);
+	_ ->
+	    ok
     end.

@@ -13,7 +13,7 @@
 	]).
 
 %% API.
--export([start_link/2, get_streamhosts/1]).
+-export([start_link/2, get_streamhosts/1, get_streamhost/2]).
 
 -include("ejabberd.hrl").
 -include("jlib.hrl").
@@ -36,6 +36,14 @@ get_streamhosts(Host) ->
     ?DEBUG("get_streamhosts ~p ~p",[Host,Proc]),
     {ok, Streamhosts} = gen_server:call(Proc, get_streamhosts),
     Streamhosts.
+
+get_streamhost(Host, JID) ->
+    Hosts = get_streamhosts(Host),
+    lists:foldl(fun({JID2, _, _} = H, nil) when JID =:= JID2 ->
+			H;
+		   (_, R) ->
+			R
+		end, nil, Hosts).
 
 %% Unused callbacks.
 code_change(_OldVsn, State, _Extra) ->

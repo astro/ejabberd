@@ -11,7 +11,8 @@
 	 terminate/2, code_change/3]).
 
 -record(state, {host, my_jid, opts, basepath, transfers}).
--record(transfer, {jid_sid, state, filename, filesize, stream_pid, request_stanza}).
+% TODO: add per-transfer known_streamhosts
+-record(transfer, {jid_sid, state, filename, filesize, streamhost, stream_pid, request_stanza}).
 
 -include_lib("kernel/include/file.hrl").
 -include("ejabberd.hrl").
@@ -71,7 +72,7 @@ handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
     ?DEBUG("Packet: ~p",[Packet]),
     IQ = jlib:iq_query_or_response_info(Packet),
     ?DEBUG("IQ: ~p",[IQ]),
-    case catch process_iq(From, IQ, State) of
+    case catch process_iq1(From, IQ, State) of
 	Result when is_record(Result, iq) ->
 	    ejabberd_router:route(To, From, jlib:iq_to_xml(Result));
 	{'EXIT', Reason} when IQ#iq.type =/= error ->
@@ -83,10 +84,12 @@ handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
     end,
     {noreply, State};
 
-handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
+handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}}=M,
 	    State = #state{my_jid = MyJID, transfers = Transfers}) ->
+    ?DEBUG("~p",[M]),
     case transfer_by_stream_pid(StreamPid, Transfers) of
-	Transfer = #transfer{state = connecting,
+	% Receiving stream
+	Transfer = #transfer{state = receiver_connecting,
 			     jid_sid = {From, SID},
 			     request_stanza = IQ,
 			     filename = FileName,
@@ -108,6 +111,22 @@ handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
 						    request_stanza = undefined}),
 	    file:make_dir(user_path(State, From)),
 	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, From, FileName), FileSize});
+	% Sending stream
+	Transfer = #transfer{jid_sid = {From, SID},
+			     state = sender_connecting,
+			     streamhost = {StreamhostJID, _, _},
+			     stream_pid = StreamPid} ->
+	    Activation = #iq{id = randoms:get_string(),
+			     type = set,
+			     sub_el = [{xmlelement, "query",
+					[{"xmlns", ?NS_BYTESTREAMS},
+					 {"sid", SID}],
+					[{xmlelement, "activate", [],
+					  [{xmlcdata, jlib:jid_to_string(From)}]}
+					]}]
+			    },
+	    ets:insert(Transfers, Transfer#transfer{state = activating, request_stanza = Activation}),
+	    ejabberd_router:route(MyJID, jlib:string_to_jid(StreamhostJID), jlib:iq_to_xml(Activation));
 	error ->
 	    ignore
     end,
@@ -125,6 +144,7 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info({'EXIT', Pid, Reason},
 	    State = #state{my_jid = MyJID, transfers = Transfers}) ->
+    ?DEBUG("EXIT from ~p: ~p",[Pid, Reason]),
     case transfer_by_stream_pid(Pid, Transfers) of
 	Transfer = #transfer{jid_sid = {From, _}, request_stanza = IQ} ->
 	    ?DEBUG("Transfer of ~p ended.", [Transfer#transfer.filename]),
@@ -175,6 +195,23 @@ code_change(_OldVsn, State, _Extra) ->
 %%% IQ Processing
 %%%------------------------
 
+process_iq1(From,
+	    #iq{type = Type, id = ID} = IQ,
+	    #state{transfers = Transfers} = State)
+  when Type == result; Type == error ->
+    case transfers_by_streamhost_request_id(From, ID, Transfers) of
+	% Streamhost activation
+	[#transfer{state = activating,
+		   stream_pid = StreamPid,
+		   filename = FileName} = Transfer | _] ->
+	    ets:insert(Transfers, Transfer#transfer{state = sending, request_stanza = undefined}),
+	    gen_fsm:send_event(StreamPid, {send_file, FileName});
+	_ ->
+	    process_iq2(From, IQ, State)
+    end;
+process_iq1(From, IQ, State) ->
+    process_iq2(From, IQ, State).
+
 -define(IDENTITY(Category, Type, Name), {xmlelement, "identity",
 					 [{"category", Category},
 					  {"type", Type},
@@ -189,7 +226,7 @@ code_change(_OldVsn, State, _Extra) ->
 				 {"name", Name}], []}).
 
 %% disco#info request
-process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_INFO, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, _) ->
+process_iq2(_, #iq{type = get, xmlns = ?NS_DISCO_INFO, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, _) ->
     Node = xml:get_attr_s("node", QueryAttrs),
     Info = case Node of
 	       "" ->
@@ -219,7 +256,7 @@ process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_INFO, sub_el = {xmlelement, "que
 	    Info}]};
 
 %% disco#items request
-process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, #state{my_jid = MyJID}) ->
+process_iq2(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "query", QueryAttrs, _}} = IQ, #state{my_jid = MyJID}) ->
     Node = xml:get_attr_s("node", QueryAttrs),
     Items = case Node of
 		"" ->
@@ -241,7 +278,7 @@ process_iq(_, #iq{type = get, xmlns = ?NS_DISCO_ITEMS, sub_el = {xmlelement, "qu
 	    Items}]};
 
 %% Command execution
-process_iq(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, State) ->
+process_iq2(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, State) ->
     case adhoc:parse_request(IQ) of
 	{error, Err} ->
 	    IQ#iq{type = error, sub_el = [SubEl, Err]};
@@ -250,8 +287,12 @@ process_iq(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, Sta
 	    IQ#iq{type = result, sub_el = [adhoc:produce_response(Resp)]}
     end;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Receiving iq handlers %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% File-transfer offer
-process_iq(From,
+process_iq2(From,
 	   #iq{type = set, xmlns = ?NS_STREAM_INITIATION, sub_el = {xmlelement, "si", SIAttrs, _} = SubEl} = IQ,
 	   #state{transfers = Transfers}) ->
     SID = xml:get_attr_s("id", SIAttrs),
@@ -291,7 +332,7 @@ process_iq(From,
 				  ]};
 
 %% Bytestreams initiation
-process_iq(From,
+process_iq2(From,
 	   #iq{type = set, xmlns = ?NS_BYTESTREAMS, sub_el = {xmlelement, "query", QueryAttrs, QueryChildren} = SubEl} = IQ,
 	   #state{my_jid = MyJID, transfers = Transfers}) ->
     SID = xml:get_attr_s("sid", QueryAttrs),
@@ -301,11 +342,9 @@ process_iq(From,
 	    case xml:get_attr_s("mode", QueryAttrs) of
 		Mode when Mode == ""; Mode == "tcp" ->
 		    StreamHosts = bytestreams_query_streamhosts(QueryChildren),
-		    Target = jlib:jid_to_string(jlib:jid_tolower(MyJID)),
-		    Initiator = jlib:jid_to_string(jlib:jid_tolower(From)),
-		    SHA1 = sha:sha(SID ++ Initiator ++ Target),
+		    SHA1 = make_sockshost(SID, From, MyJID),
 		    {ok, StreamPid} = mod_filestore_stream:start_link(self(), StreamHosts, SHA1),
-		    ets:insert(Transfers, Transfer#transfer{state = connecting,
+		    ets:insert(Transfers, Transfer#transfer{state = receiver_connecting,
 							    stream_pid = StreamPid,
 							    request_stanza = IQ}),
 		    ok;
@@ -317,8 +356,12 @@ process_iq(From,
 	    IQ#iq{type = error, sub_el = [SubEl, ?ERR_UNEXPECTED_REQUEST]}
     end;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Sending iq handlers %%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% File-transfer accept
-process_iq(From,
+process_iq2(From,
 	   #iq{type = result, id = ID, xmlns = ?NS_STREAM_INITIATION} = IQ,
 	   #state{transfers = Transfers} = State) ->
     ?DEBUG("File-transfer accept: ~p",[IQ]),
@@ -343,8 +386,36 @@ process_iq(From,
 	    IQ#iq{type = error, sub_el = [IQ#iq.sub_el, ?ERR_GONE]}
     end;
 
+%% Bytestreams streamhost-used reply
+process_iq2(From,
+	   #iq{type = result, id = ID, xmlns = ?NS_BYTESTREAMS,
+	       sub_el = [{xmlelement, "query", _, _} = SubEl | _]},
+	   #state{my_jid = MyJID, transfers = Transfers} = State) ->
+    ?DEBUG("Bytestreams reply: ~p", [SubEl]),
+    case xml:get_subtag(SubEl, "streamhost-used") of
+	{xmlelement, "streamhost-used", StreamhostUsedAttrs, _} ->
+	    case transfers_by_jid_request_id(From, ID, Transfers) of
+		[#transfer{jid_sid = {_, SID},
+			   state = streamhosts_sent} = Transfer | _] ->
+		    StreamhostJID = xml:get_attr_s("jid", StreamhostUsedAttrs),
+		    Streamhost = {_, _, _} = mod_filestore_service:get_streamhost(State#state.host, StreamhostJID),
+		    SHA1 = make_sockshost(SID, MyJID, From),
+		    {ok, StreamPid} = mod_filestore_stream:start_link(self(), [Streamhost], SHA1),
+		    ets:insert(Transfers, Transfer#transfer{state = sender_connecting,
+							    streamhost = Streamhost,
+							    stream_pid = StreamPid,
+							    request_stanza = undefined});
+		[] ->
+		    ignore
+	    end;
+	_ ->
+	    ignore
+    end,
+    ok;
+
+
 %% Generic transfer refuse/error
-process_iq(From,
+process_iq2(From,
 	   #iq{type = error, id = ID}, #state{transfers = Transfers}) ->
     Stale = transfers_by_jid_request_id(From, ID, Transfers),
     lists:foreach(fun(#transfer{jid_sid = JIDSID, stream_pid = StreamPid}) ->
@@ -359,12 +430,12 @@ process_iq(From,
     ok;
 
 %% Unknown "set" or "get" request
-process_iq(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
+process_iq2(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set ->
     ?DEBUG("unknown IQ: ~p",[IQ]),
     IQ#iq{type = error, sub_el = [SubEl, ?ERR_SERVICE_UNAVAILABLE]};
 
 %% IQ "result" or "error".
-process_iq(_, IQ, _) ->
+process_iq2(_, IQ, _) ->
     ?DEBUG("unknown IQ: ~p",[IQ]),
     ok.
 
@@ -473,6 +544,14 @@ offer_file(To, FilePath, #state{my_jid = MyJID, transfers = Transfers}) ->
 %% Helper functions
 %%
 
+make_sockshost(SID, #jid{} = Initiator, Target) ->
+    make_sockshost(SID, jlib:jid_to_string(jlib:jid_tolower(Initiator)), Target);
+make_sockshost(SID, Initiator, #jid{} = Target) ->
+    make_sockshost(SID, Initiator, jlib:jid_to_string(jlib:jid_tolower(Target)));
+make_sockshost(SID, Initiator, Target) ->
+    sha:sha(SID ++ Initiator ++ Target).
+
+
 si_find_stream_methods(SI) ->
     {xmlelement, "feature", FeatureNegAttrs, FeatureNegChildren} = xml:get_subtag(SI, "feature"),
     ?NS_FEATURE_NEG = xml:get_attr_s("xmlns", FeatureNegAttrs),
@@ -530,6 +609,16 @@ transfers_by_jid_request_id(JID, ID, Transfers) ->
 			    request_stanza = #iq{id = ID2}} = T, R)
 		 when JID =:= JID2, ID =:= ID2 -> [T | R];
 		 (_, R) -> R
+	      end, [], Transfers).
+
+transfers_by_streamhost_request_id(#jid{} = StreamhostJID, ID, Transfers) ->
+    transfers_by_streamhost_request_id(jlib:jid_to_string(StreamhostJID), ID, Transfers);
+transfers_by_streamhost_request_id(StreamhostJID, ID, Transfers) ->
+    ?DEBUG("transfers_by_streamhost_request_id(~p, ~p, ~p)",[StreamhostJID,ID,Transfers]),
+    ets:foldl(fun(#transfer{streamhost = {JID, _, _},
+			    request_stanza = #iq{id = ID2}} = T, R)
+		 when StreamhostJID =:= JID, ID =:= ID2 -> [T | R];
+		 (T, R) -> ?DEBUG("transfer: ~p",[T]), R
 	      end, [], Transfers).
 
 %%
