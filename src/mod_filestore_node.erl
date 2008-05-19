@@ -69,9 +69,7 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
-    ?DEBUG("Packet: ~p",[Packet]),
     IQ = jlib:iq_query_or_response_info(Packet),
-    ?DEBUG("IQ: ~p",[IQ]),
     case catch process_iq1(From, IQ, State) of
 	Result when is_record(Result, iq) ->
 	    ejabberd_router:route(To, From, jlib:iq_to_xml(Result));
@@ -84,9 +82,8 @@ handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
     end,
     {noreply, State};
 
-handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}}=M,
+handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
 	    State = #state{my_jid = MyJID, transfers = Transfers}) ->
-    ?DEBUG("~p",[M]),
     case transfer_by_stream_pid(StreamPid, Transfers) of
 	% Receiving stream
 	Transfer = #transfer{state = receiver_connecting,
@@ -133,7 +130,6 @@ handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}}=M,
     {noreply, State};
 
 handle_cast(_Msg, State) ->
-    ?DEBUG("cast: ~p",[_Msg]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -439,8 +435,7 @@ process_iq2(_, #iq{type=Type, sub_el=SubEl} = IQ, _) when Type==get; Type==set -
     IQ#iq{type = error, sub_el = [SubEl, ?ERR_SERVICE_UNAVAILABLE]};
 
 %% IQ "result" or "error".
-process_iq2(_, IQ, _) ->
-    ?DEBUG("unknown IQ: ~p",[IQ]),
+process_iq2(_, _, _) ->
     ok.
 
 process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
@@ -623,7 +618,7 @@ transfers_by_streamhost_request_id(StreamhostJID, ID, Transfers) ->
     ets:foldl(fun(#transfer{streamhost = {JID, _, _},
 			    request_stanza = #iq{id = ID2}} = T, R)
 		 when StreamhostJID =:= JID, ID =:= ID2 -> [T | R];
-		 (T, R) -> ?DEBUG("transfer: ~p",[T]), R
+		 (_, R) -> R
 	      end, [], Transfers).
 
 format_size(Size) ->
