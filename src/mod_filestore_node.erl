@@ -664,7 +664,7 @@ user_path(State, JID) when is_list(JID) ->
 % -> [{Name, Size}]
 user_files(State, JID) ->
     UserPath = user_path(State, JID),
-    case file:list_dir(UserPath) of
+    case lists:sort(file:list_dir(UserPath)) of
 	{ok, Files} ->
 	    lists:map(fun(File) ->
 			      case file:read_file_info(UserPath ++ "/" ++ File) of
