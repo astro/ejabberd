@@ -291,6 +291,8 @@ process_iq2(From, #iq{type = set, xmlns = ?NS_COMMANDS, sub_el = SubEl} = IQ, St
 %% Receiving iq handlers %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% TODO: range support
+
 %% File-transfer offer
 process_iq2(From,
 	   #iq{type = set, xmlns = ?NS_STREAM_INITIATION, sub_el = {xmlelement, "si", SIAttrs, _} = SubEl} = IQ,
@@ -359,6 +361,8 @@ process_iq2(From,
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %% Sending iq handlers %%
 %%%%%%%%%%%%%%%%%%%%%%%%%
+
+% TODO: range support
 
 %% File-transfer accept
 process_iq2(From,
@@ -488,7 +492,7 @@ process_adhoc(From, #adhoc_request{node = "browse",
 					    {"type", "list-multi"}],
 					   lists:map(fun({File, Size}) ->
 							     {xmlelement, "option",
-							      [{"label", io_lib:format("~s (~B Bytes)", [File, Size])}],
+							      [{"label", io_lib:format("~s (~s)", [File, format_size(Size)])}],
 							      [{xmlelement, "value", [],
 								[{xmlcdata, File}]}]}
 						     end, user_files(State, JID))
@@ -620,6 +624,18 @@ transfers_by_streamhost_request_id(StreamhostJID, ID, Transfers) ->
 		 when StreamhostJID =:= JID, ID =:= ID2 -> [T | R];
 		 (T, R) -> ?DEBUG("transfer: ~p",[T]), R
 	      end, [], Transfers).
+
+format_size(Size) ->
+    format_size(Size, ["B", "KB", "MB", "GB"]).
+
+format_size(Size, [Unit | Units]) when Size < 1024; Units == [] ->
+    Format = if
+		 is_integer(Size) -> "~B ~s";
+		 is_float(Size) -> "~.1f ~s"
+	     end,
+    io_lib:format(Format, [Size, Unit]);
+format_size(Size, [_ | Units]) ->
+    format_size(Size / 1024, Units).
 
 %%
 %% File location
