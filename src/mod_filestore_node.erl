@@ -70,6 +70,7 @@ handle_call(_Request, _From, State) ->
 %%--------------------------------------------------------------------
 handle_cast({route, From, To, {xmlelement, "iq", _, _} = Packet}, State) ->
     IQ = jlib:iq_query_or_response_info(Packet),
+    ?DEBUG("process_iq(~p, ~p, ~p)",[From,IQ,State]),
     case catch process_iq1(From, IQ, State) of
 	Result when is_record(Result, iq) ->
 	    ejabberd_router:route(To, From, jlib:iq_to_xml(Result));
@@ -106,8 +107,7 @@ handle_cast({streamhost_connected, StreamPid, {JID, Host, Port}},
 	    ejabberd_router:route(MyJID, From, jlib:iq_to_xml(Reply)),
 	    ets:insert(Transfers, Transfer#transfer{state = receiving,
 						    request_stanza = undefined}),
-	    file:make_dir(user_path(State, From)),
-	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, From, FileName), FileSize});
+	    gen_fsm:send_event(StreamPid, {receive_file, file_path(State, FileName), FileSize});
 	% Sending stream
 	Transfer = #transfer{jid_sid = {From, SID},
 			     state = sender_connecting,
@@ -197,11 +197,13 @@ process_iq1(From,
   when Type == result; Type == error ->
     case transfers_by_streamhost_request_id(From, ID, Transfers) of
 	% Streamhost activation
+	% TODO: handle error!
 	[#transfer{state = activating,
 		   stream_pid = StreamPid,
 		   filename = FileName} = Transfer | _] ->
 	    ets:insert(Transfers, Transfer#transfer{state = sending, request_stanza = undefined}),
-	    gen_fsm:send_event(StreamPid, {send_file, FileName});
+	    gen_fsm:send_event(StreamPid, {send_file, FileName}),
+	    ok;
 	_ ->
 	    process_iq2(From, IQ, State)
     end;
@@ -443,6 +445,8 @@ process_adhoc(_, #adhoc_request{action = "cancel", node = Node}, _) ->
 
 process_adhoc(From, #adhoc_request{node = "browse", action = Action, xdata = XData}, _)
   when XData == false; Action == "prev" ->
+    % TODO: remove JID prompting
+
     % JID from prev or default to user himself
     FromBare = jlib:jid_to_string(#jid{user = From#jid.user,
 				       server = From#jid.server,
@@ -507,12 +511,12 @@ process_adhoc(From, #adhoc_request{node = "browse",
 							      [{"label", io_lib:format("~s (~s)", [File, format_size(Size)])}],
 							      [{xmlelement, "value", [],
 								[{xmlcdata, File}]}]}
-						     end, user_files(State, JID))
+						     end, all_files(State))
 					  }]}]
 			   };
 	{value, {"files", Files}} ->
 	    lists:foreach(fun(File) ->
-				  offer_file(From, file_path(State, JID, File), State)
+				  offer_file(From, file_path(State, File), State)
 			  end, Files),
 	    #adhoc_response{node = "browse",
 			    status = completed}
@@ -655,32 +659,19 @@ format_size(Size, [_ | Units]) ->
 %% File location
 %%
 
-file_path(State, JID, FilePath) ->
-    UserPath = user_path(State, JID),
+file_path(#state{basepath = Basepath}, FilePath) ->
     FileName = lists:last(string:tokens(FilePath, "/")),
     [_ | _] = FileName,
     true = (FileName =/= "."),
     true = (FileName =/= ".."),
-    UserPath ++ "/" ++ FileName.
-
-user_path(#state{basepath = Basepath},
-	  #jid{user = User, server = Server}) ->
-    UserName = jlib:jid_to_string(#jid{user = User, server = Server, resource = ""}),
-    UserName2 = lists:last(string:tokens(UserName, "/")),
-    [_ | _] = UserName2,
-    true = (UserName2 =/= "."),
-    true = (UserName2 =/= ".."),
-    Basepath ++ "/" ++ UserName2;
-user_path(State, JID) when is_list(JID) ->
-    user_path(State, jlib:string_to_jid(JID)).
+    Basepath ++ "/" ++ FileName.
 
 % -> [{Name, Size}]
-user_files(State, JID) ->
-    UserPath = user_path(State, JID),
-    case file:list_dir(UserPath) of
+all_files(#state{basepath = Basepath}) ->
+    case file:list_dir(Basepath) of
 	{ok, Files} ->
 	    lists:map(fun(File) ->
-			      case file:read_file_info(UserPath ++ "/" ++ File) of
+			      case file:read_file_info(Basepath ++ "/" ++ File) of
 				  {ok, #file_info{size = Size}} -> FileSize = Size;
 				  _ -> FileSize = 0
 			      end,
