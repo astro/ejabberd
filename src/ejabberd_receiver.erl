@@ -274,7 +274,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 activate_socket(#state{socket = Socket,
-		       sock_mod = SockMod}) ->
+		       sock_mod = SockMod,
+		       c2s_pid = C2SPid}) ->
     PeerName =
 	case SockMod of
 	    gen_tcp ->
@@ -287,17 +288,21 @@ activate_socket(#state{socket = Socket,
     case PeerName of
 	{error, _Reason} ->
 	    self() ! {tcp_closed, Socket};
-	{ok, _} ->
+	{ok, IP} ->
+	    C2SPid ! {peername, IP},
 	    ok
     end.
 
 process_data(Data,
 	     #state{xml_stream_state = XMLStreamState,
-		    shaper_state = ShaperState} = State) ->
+		    shaper_state = ShaperState,
+		    c2s_pid = C2SPid} = State) ->
     ?DEBUG("Received XML on stream = ~p", [binary_to_list(Data)]),
     XMLStreamState1 = xml_stream:parse(XMLStreamState, Data),
     {NewShaperState, Pause} = shaper:update(ShaperState, size(Data)),
     if
+	C2SPid == undefined ->
+	    ok;
 	Pause > 0 ->
 	    erlang:start_timer(Pause, self(), activate);
 	true ->
