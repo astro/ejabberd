@@ -46,14 +46,26 @@
 process_data(CallbackPid, Stack, Data) ->
     case Data of
 	{?XML_START, {Name, Attrs}} ->
+	    NewStack = [{xmlelement, Name, Attrs, []} | Stack],
+	    % Is there a namespace prefix in the element's name or in
+	    % any of the attribute's names which has not been defined
+	    % in this element or one of its parents (up the stack)?
+	    BadNamespacePrefix = lists:any(fun(NodeName) ->
+						   not(is_valid_namespace_prefix(NodeName, NewStack))
+					   end, [Name | lists:map(fun({AttrName, _AttrValue}) ->
+									  AttrName
+								  end, Attrs)]),
 	    if
+		BadNamespacePrefix ->
+		    catch gen_fsm:send_event(CallbackPid,
+					     {xmlstreamerror, bad_namespace_prefix});
 		Stack == [] ->
 		    catch gen_fsm:send_event(CallbackPid,
 					     {xmlstreamstart, Name, Attrs});
 		true ->
 		    ok
 	    end,
-	    [{xmlelement, Name, Attrs, []} | Stack];
+	    NewStack;
 	{?XML_END, EndName} ->
 	    case Stack of
 		[{xmlelement, Name, Attrs, Els} | Tail] ->
@@ -188,3 +200,29 @@ process_element_events([Event | Events], Stack) ->
 	    {error, Err}
     end.
 
+is_valid_namespace_prefix(NodeName, Stack) ->
+    case string:tokens(NodeName, ":") of
+	["xml", _] ->
+	    true;
+	["xmlns", _] ->
+	    true;
+	[Prefix, _] ->
+	    prefix_has_namespace(Prefix, Stack);
+	[_] ->
+	    true
+    end.
+
+prefix_has_namespace(_Prefix, []) ->
+    false;
+prefix_has_namespace(Prefix, [{xmlelement, _, Attrs, _} | Stack]) ->
+    PrefixDefined = lists:any(fun({"xmlns:" ++ Prefix2, _AttrValue}) when Prefix2 == Prefix ->
+				      true;
+				 (_) ->
+				      false
+			      end, Attrs),
+    if
+	PrefixDefined ->
+	    true;
+	true ->
+	    prefix_has_namespace(Prefix, Stack)
+    end.
