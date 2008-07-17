@@ -1,3 +1,35 @@
+2008-07-17  Badlop  <badlop@process-one.net>
+
+	* src/mod_muc/mod_muc_room.erl: Fix to allow a server admin to add
+	himself as owner of a room (EJAB-687)
+
+	* src/Makefile.in: ejabberctl doesn't use the erl found by the
+	configure script (EJAB-676)
+	* src/ejabberdctl.template: Likewise
+
+2008-07-17  Christophe Romain  <christophe.romain@process-one.net>
+
+	* src/web/Makefile.in: use -DSSL39 if compiling with R12 
+
+2008-07-16  Badlop  <badlop@process-one.net>
+
+	* src/ejabberd_c2s.erl: Put auth_module in Info always (EJAB-549)
+
+2008-07-16  Alexey Shchepin  <alexey@process-one.net>
+
+	* src/web/ejabberd_http_poll.erl: Report connection's IP address 
+
+	* src/ejabberd_c2s.erl: Rolled back the previous IP getting patch
+	* src/ejabberd_sm.erl: Likewise
+	* src/ejabberd_receiver.erl: Likewise
+	* src/web/ejabberd_http_poll.erl: Likewise
+
+2008-07-16  Badlop  <badlop@process-one.net>
+
+	* doc/guide.tex: Improve explanation of option 'hosts' in
+	ejabberd_service
+	* doc/guide.html: Likewise
+
 2008-07-12  Badlop  <badlop@process-one.net>
 
 	* src/configure.ac: Improve legibility
