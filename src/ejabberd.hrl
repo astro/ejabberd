@@ -19,7 +19,9 @@
 %%%
 %%%----------------------------------------------------------------------
 
--define(VERSION, "2.0.0").
+%% This macro returns a string of the ejabberd version running, e.g. "2.3.4"
+%% If the ejabberd application description isn't loaded, returns atom: undefined
+-define(VERSION, element(2, application:get_key(ejabberd,vsn))).
 
 -define(MYHOSTS, bjc_config:get_hosts()).
 -define(MYNAME, hd(bjc_config:get_hosts())).
