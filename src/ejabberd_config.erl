@@ -65,8 +65,10 @@ load_file(File) ->
 	    Res = lists:foldl(fun process_term/2, State, Terms),
 	    set_opts(Res);
 	{error, Reason} ->
-	    ?ERROR_MSG("Can't load config file ~p: ~p", [File, Reason]),
-	    exit(File ++ ": " ++ file:format_error(Reason))
+	    ExitText = lists:flatten(File ++ ": around line "
+				     ++ file:format_error(Reason)),
+	    ?ERROR_MSG("Problem loading ejabberd config file:~n~s", [ExitText]),
+	    exit(ExitText)
     end.
 
 search_hosts(Term, State) ->
@@ -156,6 +158,8 @@ process_term(Term, State) ->
 	    add_option({domain_balancing_component_number, Domain}, N, State);
 	{watchdog_admins, Admins} ->
 	    add_option(watchdog_admins, Admins, State);
+	{registration_timeout, Timeout} ->
+	    add_option(registration_timeout, Timeout, State);
 	{loglevel, Loglevel} ->
 	    ejabberd_loglevel:set(Loglevel),
 	    State;

@@ -478,9 +478,9 @@ normal_state({route, From, ToNick,
 	forget_message ->
 	    {next_state, normal_state, StateData};
 	continue_delivery ->
-	    case (StateData#state.config)#config.allow_private_messages
-		andalso is_user_online(From, StateData) of
-		true ->
+	    case {(StateData#state.config)#config.allow_private_messages,
+		is_user_online(From, StateData)} of
+		{true, true} ->
 		    case Type of
 			"groupchat" ->
 			    ErrText = "It is not allowed to send private "
@@ -514,10 +514,19 @@ normal_state({route, From, ToNick,
 				      ToJID, Packet)
 			    end
 		    end;
-		_ ->
+		{true, false} ->
 		    ErrText = "Only occupants are allowed to send messages to the conference",
 		    Err = jlib:make_error_reply(
 			    Packet, ?ERRT_NOT_ACCEPTABLE(Lang, ErrText)),
+		    ejabberd_router:route(
+		      jlib:jid_replace_resource(
+			StateData#state.jid,
+			ToNick),
+		      From, Err);
+		{false, _} ->
+		    ErrText = "It is not allowed to send private messages",
+		    Err = jlib:make_error_reply(
+			    Packet, ?ERRT_FORBIDDEN(Lang, ErrText)),
 		    ejabberd_router:route(
 		      jlib:jid_replace_resource(
 			StateData#state.jid,
@@ -697,31 +706,27 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %%          {stop, Reason, NewStateData}
 %%----------------------------------------------------------------------
 handle_info({process_user_presence, From}, normal_state = _StateName, StateData) ->
-    Activity = get_user_activity(From, StateData),
-    Now = now_to_usec(now()),
-    {Nick, Packet} = Activity#activity.presence,
-    NewActivity = Activity#activity{presence_time = Now,
-				    presence = undefined},
-    StateData1 =
-	StateData#state{
-	  activity = ?DICT:store(
-			jlib:jid_tolower(From),
-			NewActivity,
-			StateData#state.activity)},
-    process_presence(From, Nick, Packet, StateData1);
+    RoomQueueEmpty = queue:is_empty(StateData#state.room_queue),
+    RoomQueue = queue:in({presence, From}, StateData#state.room_queue),
+    StateData1 = StateData#state{room_queue = RoomQueue},
+    if
+	RoomQueueEmpty ->
+	    StateData2 = prepare_room_queue(StateData1),
+	    {next_state, normal_state, StateData2};
+	true ->
+	    {next_state, normal_state, StateData1}
+    end;
 handle_info({process_user_message, From}, normal_state = _StateName, StateData) ->
-    Activity = get_user_activity(From, StateData),
-    Now = now_to_usec(now()),
-    Packet = Activity#activity.message,
-    NewActivity = Activity#activity{message_time = Now,
-				    message = undefined},
-    StateData1 =
-	StateData#state{
-	  activity = ?DICT:store(
-			jlib:jid_tolower(From),
-			NewActivity,
-			StateData#state.activity)},
-    process_groupchat_message(From, Packet, StateData1);
+    RoomQueueEmpty = queue:is_empty(StateData#state.room_queue),
+    RoomQueue = queue:in({message, From}, StateData#state.room_queue),
+    StateData1 = StateData#state{room_queue = RoomQueue},
+    if
+	RoomQueueEmpty ->
+	    StateData2 = prepare_room_queue(StateData1),
+	    {next_state, normal_state, StateData2};
+	true ->
+	    {next_state, normal_state, StateData1}
+    end;
 handle_info(process_room_queue, normal_state = StateName, StateData) ->
     case queue:out(StateData#state.room_queue) of
 	{{value, {message, From}}, RoomQueue} ->
@@ -2152,11 +2157,13 @@ find_changed_items(UJID, UAffiliation, URole,
 					    [StrAffiliation]),
 				    {error, ?ERRT_NOT_ACCEPTABLE(Lang, ErrText1)};
 				SAffiliation ->
+				    ServiceAf = get_service_affiliation(JID, StateData),
 				    CanChangeRA =
 					case can_change_ra(
 					       UAffiliation, URole,
 					       TAffiliation, TRole,
-					       affiliation, SAffiliation) of
+					       affiliation, SAffiliation,
+						   ServiceAf) of
 					    nothing ->
 						nothing;
 					    true ->
@@ -2207,11 +2214,13 @@ find_changed_items(UJID, UAffiliation, URole,
 				  [StrRole]),
 			    {error, ?ERRT_BAD_REQUEST(Lang, ErrText1)};
 			SRole ->
+			    ServiceAf = get_service_affiliation(JID, StateData),
 			    CanChangeRA =
 				case can_change_ra(
 				       UAffiliation, URole,
 				       TAffiliation, TRole,
-				       role, SRole) of
+				       role, SRole,
+					   ServiceAf) of
 				    nothing ->
 					nothing;
 				    true ->
@@ -2258,142 +2267,148 @@ find_changed_items(_UJID, _UAffiliation, _URole, _Items,
 
 
 can_change_ra(_FAffiliation, _FRole,
+	      owner, _TRole,
+	      affiliation, owner, owner) ->
+    %% A room owner tries to add as persistent owner a
+    %% participant that is already owner because he is MUC admin
+    true;
+can_change_ra(_FAffiliation, _FRole,
 	      TAffiliation, _TRole,
-	      affiliation, Value)
+	      affiliation, Value, _ServiceAf)
   when (TAffiliation == Value) ->
     nothing;
 can_change_ra(_FAffiliation, _FRole,
 	      _TAffiliation, TRole,
-	      role, Value)
+	      role, Value, _ServiceAf)
   when (TRole == Value) ->
     nothing;
 can_change_ra(FAffiliation, _FRole,
 	      outcast, _TRole,
-	      affiliation, none)
+	      affiliation, none, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      outcast, _TRole,
-	      affiliation, member)
+	      affiliation, member, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(owner, _FRole,
 	      outcast, _TRole,
-	      affiliation, admin) ->
+	      affiliation, admin, _ServiceAf) ->
     true;
 can_change_ra(owner, _FRole,
 	      outcast, _TRole,
-	      affiliation, owner) ->
+	      affiliation, owner, _ServiceAf) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      none, _TRole,
-	      affiliation, outcast)
+	      affiliation, outcast, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      none, _TRole,
-	      affiliation, member)
+	      affiliation, member, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(owner, _FRole,
 	      none, _TRole,
-	      affiliation, admin) ->
+	      affiliation, admin, _ServiceAf) ->
     true;
 can_change_ra(owner, _FRole,
 	      none, _TRole,
-	      affiliation, owner) ->
+	      affiliation, owner, _ServiceAf) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      member, _TRole,
-	      affiliation, outcast)
+	      affiliation, outcast, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      member, _TRole,
-	      affiliation, none)
+	      affiliation, none, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(owner, _FRole,
 	      member, _TRole,
-	      affiliation, admin) ->
+	      affiliation, admin, _ServiceAf) ->
     true;
 can_change_ra(owner, _FRole,
 	      member, _TRole,
-	      affiliation, owner) ->
+	      affiliation, owner, _ServiceAf) ->
     true;
 can_change_ra(owner, _FRole,
 	      admin, _TRole,
-	      affiliation, _Affiliation) ->
+	      affiliation, _Affiliation, _ServiceAf) ->
     true;
 can_change_ra(owner, _FRole,
 	      owner, _TRole,
-	      affiliation, _Affiliation) ->
+	      affiliation, _Affiliation, _ServiceAf) ->
     check_owner;
 can_change_ra(_FAffiliation, _FRole,
 	      _TAffiliation, _TRole,
-	      affiliation, _Value) ->
+	      affiliation, _Value, _ServiceAf) ->
     false;
 can_change_ra(_FAffiliation, moderator,
 	      _TAffiliation, visitor,
-	      role, none) ->
+	      role, none, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, moderator,
 	      _TAffiliation, visitor,
-	      role, participant) ->
+	      role, participant, _ServiceAf) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      _TAffiliation, visitor,
-	      role, moderator)
+	      role, moderator, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(_FAffiliation, moderator,
 	      _TAffiliation, participant,
-	      role, none) ->
+	      role, none, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, moderator,
 	      _TAffiliation, participant,
-	      role, visitor) ->
+	      role, visitor, _ServiceAf) ->
     true;
 can_change_ra(FAffiliation, _FRole,
 	      _TAffiliation, participant,
-	      role, moderator)
+	      role, moderator, _ServiceAf)
   when (FAffiliation == owner) or (FAffiliation == admin) ->
     true;
 can_change_ra(_FAffiliation, _FRole,
 	      owner, moderator,
-	      role, visitor) ->
+	      role, visitor, _ServiceAf) ->
     false;
 can_change_ra(owner, _FRole,
 	      _TAffiliation, moderator,
-	      role, visitor) ->
+	      role, visitor, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, _FRole,
 	      admin, moderator,
-	      role, visitor) ->
+	      role, visitor, _ServiceAf) ->
     false;
 can_change_ra(admin, _FRole,
 	      _TAffiliation, moderator,
-	      role, visitor) ->
+	      role, visitor, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, _FRole,
 	      owner, moderator,
-	      role, participant) ->
+	      role, participant, _ServiceAf) ->
     false;
 can_change_ra(owner, _FRole,
 	      _TAffiliation, moderator,
-	      role, participant) ->
+	      role, participant, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, _FRole,
 	      admin, moderator,
-	      role, participant) ->
+	      role, participant, _ServiceAf) ->
     false;
 can_change_ra(admin, _FRole,
 	      _TAffiliation, moderator,
-	      role, participant) ->
+	      role, participant, _ServiceAf) ->
     true;
 can_change_ra(_FAffiliation, _FRole,
 	      _TAffiliation, _TRole,
-	      role, _Value) ->
+	      role, _Value, _ServiceAf) ->
     false.
 
 

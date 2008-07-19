@@ -87,6 +87,7 @@
 		pres_invis = false,
 		privacy_list = #userlist{},
 		conn = unknown,
+		auth_module = unknown,
 		ip,
 		lang}).
 
@@ -175,26 +176,34 @@ init([{SockMod, Socket}, Opts]) ->
 			      (_) -> false
 			   end, Opts),
     IP = peerip(SockMod, Socket),
-    Socket1 =
-	if
-	    TLSEnabled ->
-		SockMod:starttls(Socket, TLSOpts);
-	    true ->
-		Socket
-	end,
-    SocketMonitor = SockMod:monitor(Socket1),
-    {ok, wait_for_stream, #state{socket         = Socket1,
-				 sockmod        = SockMod,
-				 socket_monitor = SocketMonitor,
-				 zlib           = Zlib,
-				 tls            = TLS,
-				 tls_required   = StartTLSRequired,
-				 tls_enabled    = TLSEnabled,
-				 tls_options    = TLSOpts,
-				 streamid       = new_id(),
-				 access         = Access,
-				 shaper         = Shaper,
-				 ip             = IP}, ?C2S_OPEN_TIMEOUT}.
+    %% Check if IP is blacklisted:
+    case is_ip_blacklisted(IP) of
+	true ->
+	    ?INFO_MSG("Connection attempt from blacklisted IP: ~s",
+	              [jlib:ip_to_list(IP)]),
+	    {stop, normal};
+	false ->
+	    Socket1 =
+		if
+		    TLSEnabled ->
+			SockMod:starttls(Socket, TLSOpts);
+		    true ->
+			Socket
+		end,
+	    SocketMonitor = SockMod:monitor(Socket1),
+	    {ok, wait_for_stream, #state{socket         = Socket1,
+					sockmod        = SockMod,
+					socket_monitor = SocketMonitor,
+					zlib           = Zlib,
+					tls            = TLS,
+					tls_required   = StartTLSRequired,
+					tls_enabled    = TLSEnabled,
+					tls_options    = TLSOpts,
+					streamid       = new_id(),
+					access         = Access,
+					shaper         = Shaper,
+					ip             = IP}, ?C2S_OPEN_TIMEOUT}
+    end.
 
 %% Return list of all available resources of contacts,
 %% in form [{JID, Caps}].
@@ -238,11 +247,11 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 					cyrsasl:server_new(
 					  "jabber", Server, "", [],
 					  fun(U) ->
-						  ejabberd_auth:get_password(
+						  ejabberd_auth:get_password_with_authmodule(
 						    U, Server)
 					  end,
 					  fun(U, P) ->
-						  ejabberd_auth:check_password(
+						  ejabberd_auth:check_password_with_authmodule(
 						    U, Server, P)
 					  end),
 				    Mechs = lists:map(
@@ -430,17 +439,18 @@ wait_for_auth({xmlstreamelement, El}, StateData) ->
 		(acl:match_rule(StateData#state.server,
 				StateData#state.access, JID) == allow) of
 		true ->
-		    case ejabberd_auth:check_password(
+		    case ejabberd_auth:check_password_with_authmodule(
 			   U, StateData#state.server, P,
 			   StateData#state.streamid, D) of
-			true ->
+			{true, AuthModule} ->
 			    ?INFO_MSG(
 			       "(~w) Accepted legacy authentication for ~s",
 			       [StateData#state.socket,
 				jlib:jid_to_string(JID)]),
 			    SID = {now(), self()},
 			    Conn = get_conn_type(StateData),
-			    Info = [{ip, StateData#state.ip}, {conn, Conn}],
+			    Info = [{ip, StateData#state.ip}, {conn, Conn},
+				    {auth_module, AuthModule}],
 			    ejabberd_sm:open_session(
 			      SID, U, StateData#state.server, R, Info),
 			    Res1 = jlib:make_result_iq_reply(El),
@@ -468,6 +478,7 @@ wait_for_auth({xmlstreamelement, El}, StateData) ->
 					     jid = JID,
 					     sid = SID,
 					     conn = Conn,
+					     auth_module = AuthModule,
 					     pres_f = ?SETS:from_list(Fs1),
 					     pres_t = ?SETS:from_list(Ts1),
 					     privacy_list = PrivList});
@@ -674,12 +685,14 @@ wait_for_sasl_response({xmlstreamelement, El}, StateData) ->
 				 {xmlelement, "success",
 				  [{"xmlns", ?NS_SASL}], []}),
 		    U = xml:get_attr_s(username, Props),
+		    AuthModule = xml:get_attr_s(auth_module, Props),
 		    ?INFO_MSG("(~w) Accepted authentication for ~s",
 			      [StateData#state.socket, U]),
 		    fsm_next_state(wait_for_stream,
 				   StateData#state{
 				     streamid = new_id(),
 				     authenticated = true,
+				     auth_module = AuthModule,
 				     user = U});
 		{continue, ServerOut, NewSASLState} ->
 		    send_element(StateData,
@@ -790,7 +803,8 @@ wait_for_session({xmlstreamelement, El}, StateData) ->
 			       jlib:jid_to_string(JID)]),
 		    SID = {now(), self()},
 		    Conn = get_conn_type(StateData),
-		    Info = [{ip, StateData#state.ip}, {conn, Conn}],
+		    Info = [{ip, StateData#state.ip}, {conn, Conn},
+			    {auth_module, StateData#state.auth_module}],
 		    ejabberd_sm:open_session(
 		      SID, U, StateData#state.server, R, Info),
 		    Res = jlib:make_result_iq_reply(El),
@@ -1442,7 +1456,8 @@ presence_update(From, Packet, StateData) ->
 			 StatusTag ->
 			    xml:get_tag_cdata(StatusTag)
 		     end,
-	    Info = [{ip, StateData#state.ip},{conn, StateData#state.conn}],
+	    Info = [{ip, StateData#state.ip}, {conn, StateData#state.conn},
+		    {auth_module, StateData#state.auth_module}],
 	    ejabberd_sm:unset_presence(StateData#state.sid,
 				       StateData#state.user,
 				       StateData#state.server,
@@ -1774,7 +1789,8 @@ roster_change(IJID, ISubscription, StateData) ->
 
 
 update_priority(Priority, Packet, StateData) ->
-    Info = [{ip, StateData#state.ip},{conn, StateData#state.conn}],
+    Info = [{ip, StateData#state.ip}, {conn, StateData#state.conn},
+	    {auth_module, StateData#state.auth_module}],
     ejabberd_sm:set_presence(StateData#state.sid,
 			     StateData#state.user,
 			     StateData#state.server,
@@ -1902,7 +1918,8 @@ process_unauthenticated_stanza(StateData, El) ->
 	    Res = ejabberd_hooks:run_fold(c2s_unauthenticated_iq,
 					  StateData#state.server,
 					  empty,
-					  [StateData#state.server, IQ]),
+					  [StateData#state.server, IQ,
+					   StateData#state.ip]),
 	    case Res of
 		empty ->
 		    % The only reasonable IQ's here are auth and register IQ's
@@ -1945,3 +1962,7 @@ fsm_reply(Reply, session_established, StateData) ->
     {reply, Reply, session_established, StateData, ?C2S_HIBERNATE_TIMEOUT};
 fsm_reply(Reply, StateName, StateData) ->
     {reply, Reply, StateName, StateData, ?C2S_OPEN_TIMEOUT}.
+
+%% Used by c2s blacklist plugins
+is_ip_blacklisted({IP,_Port}) ->
+    ejabberd_hooks:run_fold(check_bl_c2s, false, [IP]).
