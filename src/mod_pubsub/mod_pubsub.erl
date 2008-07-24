@@ -226,8 +226,6 @@ terminate_plugins(Host, ServerHost, Plugins, TreePlugin) ->
     ok.
 
 init_nodes(Host, ServerHost, ServedHosts) ->
-    create_node(Host, ServerHost, ["pubsub"], service_jid(Host), ?STDNODE),
-    create_node(Host, ServerHost, ["pubsub", "nodes"], service_jid(Host), ?STDNODE),
     create_node(Host, ServerHost, ["home"], service_jid(Host), ?STDNODE),
     lists:foreach(
       fun(H) ->
@@ -419,7 +417,7 @@ remove_user(User, Server) ->
     LUser = jlib:nodeprep(User),
     LServer = jlib:nameprep(Server),
     Proc = gen_mod:get_module_proc(Server, ?PROCNAME),
-    gen_server:cast(Proc, {remove, LUser, LServer}).
+    gen_server:cast(Proc, {remove_user, LUser, LServer}).
 
 %%--------------------------------------------------------------------
 %% Function:
@@ -516,9 +514,26 @@ handle_cast({presence, JID, Pid}, State) ->
     end,
     {noreply, State};
 
-handle_cast({remove, User, Server}, State) ->
-    Owner = jlib:make_jid(User, Server, ""),
-    delete_nodes(Server, Owner),
+handle_cast({remove_user, User, Host}, State) ->
+    Owner = jlib:make_jid(User, Host, ""),
+    OwnerKey = jlib:jid_tolower(jlib:jid_remove_resource(Owner)),
+    %% remove user's subscriptions
+    lists:foreach(fun(Type) ->
+	{result, Subscriptions} = node_action(Type, get_entity_subscriptions, [Host, Owner]),
+	lists:foreach(fun
+	    ({Node, subscribed}) ->
+		JID = jlib:jid_to_string(Owner),
+		unsubscribe_node(Host, Node, Owner, JID, all);
+	    (_) ->
+		ok
+	end, Subscriptions)
+    end, State#state.plugins),
+    %% remove user's PEP nodes 
+    lists:foreach(fun(#pubsub_node{nodeid={NodeKey, NodeName}}) ->
+	delete_node(NodeKey, NodeName, Owner)
+    end, tree_action(Host, get_nodes, [OwnerKey])),
+    %% remove user's nodes
+    delete_node(Host, ["home", Host, User], Owner),
     {noreply, State};
 
 handle_cast(_Msg, State) ->
@@ -1296,12 +1311,6 @@ delete_node(Host, Node, Owner) ->
 	{result, Result} ->
 	    {result, Result}
     end.
-delete_nodes(Host, Owner) ->
-    %% This removes only PEP nodes when user is removed
-    OwnerKey = jlib:jid_tolower(jlib:jid_remove_resource(Owner)),
-    lists:foreach(fun(#pubsub_node{nodeid={NodeKey, NodeName}}) ->
-	delete_node(NodeKey, NodeName, Owner)
-    end, tree_action(Host, get_nodes, [OwnerKey])).
 
 %% @spec (Host, Node, From, JID) ->
 %%		  {error, Reason::stanzaError()} |
@@ -1377,7 +1386,7 @@ subscribe_node(Host, Node, From, JID) ->
 	{error, Error} ->
 	    {error, Error};
 	{result, {Result, subscribed, send_last}} ->
-	    send_all_items(Host, Node, Subscriber),
+	    send_last_item(Host, Node, Subscriber),
 	    case Result of
 		default -> {result, Reply(subscribed)};
 		_ -> {result, Result}
@@ -1724,21 +1733,25 @@ send_last_item(Host, Node, LJID) ->
 
 %% TODO use cache-last-item feature
 send_items(Host, Node, LJID, Number) ->
-    Items = get_items(Host, Node),
-    ToSend = case Number of
-		 last -> lists:sublist(Items, 1);
-		 all -> Items;
-		 N when N > 0 -> lists:sublist(Items, N);
-		 _ -> Items
-	     end,
+    ToSend = case get_items(Host, Node) of
+	[] -> 
+	    [];
+	Items ->
+	    case Number of
+		last -> lists:sublist(lists:reverse(Items), 1);
+		all -> Items;
+		N when N > 0 -> lists:nthtail(length(Items)-N, Items);
+		_ -> Items
+	    end
+    end,
     ItemsEls = lists:map(
-		 fun(#pubsub_item{itemid = {ItemId, _}, payload = Payload}) ->
-			 ItemAttrs = case ItemId of
-					 "" -> [];
-					 _ -> [{"id", ItemId}]
-				     end,
-			 {xmlelement, "item", ItemAttrs, Payload}
-		 end, ToSend),
+		fun(#pubsub_item{itemid = {ItemId, _}, payload = Payload}) ->
+		    ItemAttrs = case ItemId of
+			"" -> [];
+			_ -> [{"id", ItemId}]
+		    end,
+		    {xmlelement, "item", ItemAttrs, Payload}
+		end, ToSend),
     Stanza = {xmlelement, "message", [],
 	      [{xmlelement, "event", [{"xmlns", ?NS_PUBSUB_EVENT}],
 		[{xmlelement, "items", [{"node", node_to_string(Node)}],
@@ -2405,9 +2418,11 @@ get_default(Host, _Node, _From, Lang) ->
 %% The result depend of the node type plugin system.
 get_option([], _) -> false;
 get_option(Options, Var) ->
+    get_option(Options, Var, false).
+get_option(Options, Var, Def) ->
     case lists:keysearch(Var, 1, Options) of
 	{value, {_Val, Ret}} -> Ret;
-	_ -> false
+	_ -> Def
     end.
 
 %% Get default options from the module plugin.
@@ -2452,7 +2467,7 @@ max_items(Options) ->
 
 -define(STRING_CONFIG_FIELD(Label, Var),
 	?STRINGXFIELD(Label, "pubsub#" ++ atom_to_list(Var),
-		      get_option(Options, Var))).
+		      get_option(Options, Var, ""))).
 
 -define(INTEGER_CONFIG_FIELD(Label, Var),
 	?STRINGXFIELD(Label, "pubsub#" ++ atom_to_list(Var),
