@@ -5,7 +5,7 @@
 %%% Created : 27 Feb 2004 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2008   Process-one
+%%% ejabberd, Copyright (C) 2002-2008   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -390,7 +390,10 @@ recv_data(_State, 0, Acc) ->
 recv_data(State, Len, Acc) ->
     case State#state.trail of
 	[] ->
-	    case (State#state.sockmod):recv(State#state.socket, Len, 300000) of
+	    %% TODO: Fix the problem in tls C driver and revert this workaround
+	    %% https://support.process-one.net/browse/EJAB-611
+	    %%case (State#state.sockmod):recv(State#state.socket, Len, 300000) of
+	    case (State#state.sockmod):recv(State#state.socket,   0, 300000) of
 		{ok, Data} ->
 		    recv_data(State, Len - size(Data), [Acc | Data]);
 		_ ->

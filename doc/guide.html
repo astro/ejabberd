@@ -272,9 +272,9 @@ Support for virtual hosting.
 </LI></UL><P> <A NAME="installing"></A> </P><!--TOC chapter Installing <TT>ejabberd</TT>-->
 <H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc4">Chapter&#XA0;2</A>&#XA0;&#XA0;<A HREF="#installing">Installing <TT>ejabberd</TT></A></H1><!--SEC END --><P> <A NAME="installing"></A> </P><P> <A NAME="install.binary"></A> </P><!--TOC section Installing <TT>ejabberd</TT> with Binary Installer-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc5">2.1</A>&#XA0;&#XA0;<A HREF="#install.binary">Installing <TT>ejabberd</TT> with Binary Installer</A></H2><!--SEC END --><P> <A NAME="install.binary"></A> </P><P>Probably the easiest way to install an <TT>ejabberd</TT> instant messaging server
-is using the binary installer published by Process-one. 
+is using the binary installer published by ProcessOne. 
 The binary installers of released <TT>ejabberd</TT> versions 
-are available in the Process-one <TT>ejabberd</TT> downloads page:
+are available in the ProcessOne <TT>ejabberd</TT> downloads page:
 <A HREF="http://www.process-one.net/en/ejabberd/downloads"><TT>http://www.process-one.net/en/ejabberd/downloads</TT></A></P><P>The installer will deploy and configure a full featured <TT>ejabberd</TT>
 server and does not require any extra dependencies.</P><P>In *nix systems, remember to set executable the binary installer before starting it. For example:
 </P><PRE CLASS="verbatim">chmod +x ejabberd-2.0.0_1-linux-x86-installer.bin
@@ -290,7 +290,13 @@ go to the Windows service settings and set ejabberd to be automatically started.
 Note that the Windows service is a feature still in development, 
 and for example it doesn&#X2019;t read the file ejabberdctl.cfg.</P><P>On a *nix system, if you want ejabberd to be started as daemon at boot time, 
 copy <TT>ejabberd.init</TT> from the &#X2019;bin&#X2019; directory to something like <TT>/etc/init.d/ejabberd</TT>
-(depending on your distribution) and call <TT>/etc/inid.d/ejabberd start</TT> to start it.</P><P>The <TT>ejabberdctl</TT> administration script is included in the <TT>bin</TT> directory.
+(depending on your distribution) and call <TT>/etc/inid.d/ejabberd start</TT> to start it.</P><P>If <TT>ejabberd</TT> doesn&#X2019;t start correctly and a crash dump is generated,
+there was a severe problem.
+You can try starting <TT>ejabberd</TT> with
+the script <TT>bin/live.bat</TT> in Windows,
+or with the command <TT>bin/ejabberdctl live</TT> in other Operating Systems.
+This way you see the error message provided by Erlang
+and can identify what is exactly the problem.</P><P>The <TT>ejabberdctl</TT> administration script is included in the <TT>bin</TT> directory.
 Please refer to the section&#XA0;<A HREF="#ejabberdctl">4.1</A> for details about <TT>ejabberdctl</TT>,
 and configurable options to fine tune the Erlang runtime system.</P><P> <A NAME="install.os"></A> </P><!--TOC section Installing <TT>ejabberd</TT> with Operating System specific packages-->
 <H2 CLASS="section"><!--SEC ANCHOR --><A NAME="htoc6">2.2</A>&#XA0;&#XA0;<A HREF="#install.os">Installing <TT>ejabberd</TT> with Operating System specific packages</A></H2><!--SEC END --><P> <A NAME="install.os"></A> </P><P>Some Operating Systems provide a specific <TT>ejabberd</TT> package adapted to 
@@ -324,7 +330,7 @@ GNU Make
 </LI><LI CLASS="li-itemize">GNU Iconv 1.8 or higher, for the IRC Transport (mod_irc). Optional. Not needed on systems with GNU Libc.
 </LI></UL><P> <A NAME="download"></A> </P><!--TOC subsection Download Source Code-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc10">2.4.2</A>&#XA0;&#XA0;<A HREF="#download">Download Source Code</A></H3><!--SEC END --><P> <A NAME="download"></A> 
-</P><P>Released versions of <TT>ejabberd</TT> are available in the Process-one <TT>ejabberd</TT> downloads page:
+</P><P>Released versions of <TT>ejabberd</TT> are available in the ProcessOne <TT>ejabberd</TT> downloads page:
 <A HREF="http://www.process-one.net/en/ejabberd/downloads"><TT>http://www.process-one.net/en/ejabberd/downloads</TT></A></P><P>
 Alternatively, the latest development version can be retrieved from the Subversion repository using this command:
 </P><PRE CLASS="verbatim">svn co http://svn.process-one.net/ejabberd/trunk ejabberd
@@ -388,7 +394,12 @@ Node ejabberd@localhost is started. Status: started
 ejabberd is running
 
 ejabberdctl stop
-</PRE><P>Please refer to the section&#XA0;<A HREF="#ejabberdctl">4.1</A> for details about <TT>ejabberdctl</TT>,
+</PRE><P>If <TT>ejabberd</TT> doesn&#X2019;t start correctly and a crash dump is generated,
+there was a severe problem.
+You can try starting <TT>ejabberd</TT> with
+the command <TT>ejabberdctl live</TT>
+to see the error message provided by Erlang
+and can identify what is exactly the problem.</P><P>Please refer to the section&#XA0;<A HREF="#ejabberdctl">4.1</A> for details about <TT>ejabberdctl</TT>,
 and configurable options to fine tune the Erlang runtime system.</P><P> <A NAME="bsd"></A> </P><!--TOC subsection Specific Notes for BSD-->
 <H3 CLASS="subsection"><!--SEC ANCHOR --><A NAME="htoc14">2.4.6</A>&#XA0;&#XA0;<A HREF="#bsd">Specific Notes for BSD</A></H3><!--SEC END --><P> <A NAME="bsd"></A> 
 </P><P>The command to compile <TT>ejabberd</TT> in BSD systems is:
@@ -959,8 +970,12 @@ version, you can <TT>kill(1)</TT> <TT>epam</TT> process periodically to reduce i
 consumption: <TT>ejabberd</TT> will restart this process immediately.
 </LI><LI CLASS="li-itemize"><TT>epam</TT> program tries to turn off delays on authentication failures.
 However, some PAM modules ignore this behavior and rely on their own configuration options.
-The example configuration file <TT>ejabberd.pam</TT> shows how to turn off delays in
-<TT>pam_unix.so</TT> module. It is not a ready to use configuration file: you must use it
+You can create a configuration file <TT>ejabberd.pam</TT>.
+This example shows how to turn off delays in <TT>pam_unix.so</TT> module:
+<PRE CLASS="verbatim">#%PAM-1.0
+auth        sufficient  pam_unix.so likeauth nullok nodelay
+account     sufficient  pam_unix.so
+</PRE>That is not a ready to use configuration file: you must use it
 as a hint when building your own PAM configuration instead. Note that if you want to disable
 delays on authentication failures in the PAM configuration file, you have to restrict access
 to this file, so a malicious user can&#X2019;t use your configuration to perform brute-force
@@ -2005,6 +2020,12 @@ The available room options and the default values are:
 </DD><DT CLASS="dt-description"><B><TT>{allow_private_messages, true}</TT></B></DT><DD CLASS="dd-description"> Occupants can send private messages to other occupants.
 </DD><DT CLASS="dt-description"><B><TT>{allow_query_users, true}</TT></B></DT><DD CLASS="dd-description"> Occupants can send IQ queries to other occupants.
 </DD><DT CLASS="dt-description"><B><TT>{allow_user_invites, false}</TT></B></DT><DD CLASS="dd-description"> Allow occupants to send invitations.
+</DD><DT CLASS="dt-description"><B><TT>{allow_visitor_nickchange, true}</TT></B></DT><DD CLASS="dd-description"> Allow visitors to
+change nickname.
+</DD><DT CLASS="dt-description"><B><TT>{allow_visitor_status, true}</TT></B></DT><DD CLASS="dd-description"> Allow visitors to send
+status text in presence updates. If disallowed, the <TT>status</TT>
+text is stripped before broadcasting the presence update to all
+the room occupants.
 </DD><DT CLASS="dt-description"><B><TT>{anonymous, true}</TT></B></DT><DD CLASS="dd-description"> Occupants are allowed to see the real JIDs of other occupants.
 </DD><DT CLASS="dt-description"><B><TT>{logging, false}</TT></B></DT><DD CLASS="dd-description"> The public messages are logged using <TT>mod_muc_log</TT>.
 </DD><DT CLASS="dt-description"><B><TT>{max_users, 200}</TT></B></DT><DD CLASS="dd-description"> Maximum number of occupants in the room.
@@ -3234,7 +3255,7 @@ Alexey Shchepin (<A HREF="xmpp:aleksey@jabber.ru"><TT>xmpp:aleksey@jabber.ru</TT
 </LI><LI CLASS="li-itemize">Vsevolod Pelipas (<A HREF="xmpp:vsevoload@jabber.ru"><TT>xmpp:vsevoload@jabber.ru</TT></A>)
 </LI></UL><P> <A NAME="copyright"></A> </P><!--TOC chapter Copyright Information-->
 <H1 CLASS="chapter"><!--SEC ANCHOR --><A NAME="htoc91">Appendix&#XA0;D</A>&#XA0;&#XA0;<A HREF="#copyright">Copyright Information</A></H1><!--SEC END --><P> <A NAME="copyright"></A> </P><P>Ejabberd Installation and Operation Guide.<BR>
-Copyright &#XA9; 2003 &#X2014; 2008 Process-one</P><P>This document is free software; you can redistribute it and/or
+Copyright &#XA9; 2003 &#X2014; 2008 ProcessOne</P><P>This document is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
 of the License, or (at your option) any later version.</P><P>This document is distributed in the hope that it will be useful,

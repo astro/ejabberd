@@ -10,12 +10,12 @@
 %%% the License for the specific language governing rights and limitations
 %%% under the License.
 %%% 
-%%% The Initial Developer of the Original Code is Process-one.
-%%% Portions created by Process-one are Copyright 2006-2008, Process-one
+%%% The Initial Developer of the Original Code is ProcessOne.
+%%% Portions created by ProcessOne are Copyright 2006-2008, ProcessOne
 %%% All Rights Reserved.''
-%%% This software is copyright 2006-2008, Process-one.
+%%% This software is copyright 2006-2008, ProcessOne.
 %%%
-%%% @copyright 2006-2008 Process-one
+%%% @copyright 2006-2008 ProcessOne
 %%% @author Christophe Romain <christophe.romain@process-one.net>
 %%%   [http://www.process-one.net/]
 %%% @version {@vsn}, {@date} {@time}
@@ -286,8 +286,7 @@ update_database(Host) ->
 			mnesia:delete_table(pubsub_node),
 			mnesia:create_table(pubsub_node,
 					    [{disc_copies, [node()]},
-					     {attributes, record_info(fields, pubsub_node)},
-					     {index, [type, parentid]}]),
+					     {attributes, record_info(fields, pubsub_node)}]),
 			lists:foreach(fun(Record) ->
 					      mnesia:write(Record)
 				      end, NewRecords)
@@ -2013,7 +2012,8 @@ get_roster_info(OwnerUser, OwnerServer, {SubscriberUser, SubscriberServer, _}, A
 	  roster_get_jid_info, OwnerServer,
 	  {none, []},
 	  [OwnerUser, OwnerServer, {SubscriberUser, SubscriberServer, ""}]),
-    PresenceSubscription = (Subscription == both) orelse (Subscription == from),
+    PresenceSubscription = (Subscription == both) orelse (Subscription == from)
+			    orelse ({OwnerUser, OwnerServer} == {SubscriberUser, SubscriberServer}),
     RosterGroup = lists:any(fun(Group) ->
 				    lists:member(Group, AllowedGroups)
 			    end, Groups),

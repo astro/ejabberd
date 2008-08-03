@@ -1,3 +1,104 @@
+2008-08-01  Badlop  <badlop@process-one.net>
+
+	* doc/release_notes_2.0.2.txt: Added for ejabberd 2.0.2-beta1
+
+	* src/web/ejabberd_http.erl: Temporary solution for check of
+	packet size when HTTPS (EJAB-611)(EJAB-507)(EJAB-574)
+
+2008-07-31  Badlop  <badlop@process-one.net>
+
+	* doc/guide.tex: Update Process-one name to ProcessOne (EJAB-708)
+	* doc/guide.html: Likewise
+	* doc/api/overview.edoc: Likewise
+	* src/*/*.erl: Likewise
+	* src/*/*.hrl: Likewise
+	* src/*/*.c: Likewise
+	* src/odbc/*.sql: Likewise
+
+2008-07-30  Badlop  <badlop@process-one.net>
+
+	* src/mod_muc/mod_muc_room.erl: Support Reasons for all
+	affiliation and role changes (EJAB-306)
+
+	* src/gen_mod.erl: When ejabberd is kindly stopped, don't forget
+	modules configuration (EJAB-706)
+	* src/ejabberd_app.erl: Likewise
+
+	* src/msgs/uk.msg: Fix: each string in a single line
+	* src/msgs/wa.msg: Likewise
+
+	* src/msgs/es.msg: Fix typo
+	* src/msgs/gl.msg: Likewise
+	* src/msgs/pt-br.msg: Likewise
+
+	* src/msgs/zh.msg: Fix some translations (thanks to Zhan Caibao)
+
+2008-07-29  Badlop  <badlop@process-one.net>
+
+	* src/msgs/ca.msg: Updated (thanks to Badlop)
+	* src/msgs/cs.msg: Updated (thanks to Lukas Poliuvk)
+	* src/msgs/de.msg: Updated (thanks to Nikolaus Polak)
+	* src/msgs/es.msg: Updated (thanks to Badlop)
+	* src/msgs/fr.msg: Updated (thanks to Christophe Romain)
+	* src/msgs/it.msg: Updated (thanks to Luca Brivio)
+	* src/msgs/ja.msg: Updated (thanks to Tsukasa Hamano)
+	* src/msgs/no.msg: Updated (thanks to Stian B. Barmen)
+	* src/msgs/pl.msg: Updated (thanks to Zbyszek Zolkiewski)
+	* src/msgs/pt-br.msg: Updated (thanks to Otavio Fernandes)
+	* src/msgs/ru.msg: Updated (thanks to Evgeniy Khramtsov)
+	* src/msgs/tr.msg: Updated (thanks to Doruk Fisek)
+	* src/msgs/uk.msg: Updated (thanks to Ruslan Rakhmanin)
+	* src/msgs/wa.msg: Updated (thanks to Pablo Saratxaga)
+	* src/msgs/zh.msg: Updated (thanks to Shelley Shyan)
+
+2008-07-28  Badlop  <badlop@process-one.net>
+
+	* doc/guide.tex: Document how to get error message when ejabberd
+	crash dumps at start (EJAB-660)
+	* doc/guide.html: Likewise
+
+	* src/mod_muc/mod_muc_room.erl: Add 'description' to the
+	mod_muc_room config record; it will be used in ejabberd 2.1.x
+	branch (EJAB-670)
+
+2008-07-25  Christophe Romain  <christophe.romain@process-one.net>
+
+	* src/mod_pubsub/mod_pubsub.erl: Speedup startup with many pubsub
+	nodes (EJAB-669)
+	* src/mod_pubsub/nodetree_default.erl: Likewise
+
+2008-07-24  Badlop  <badlop@process-one.net>
+
+	* doc/guide.tex: Include example PAM configuration file
+	ejabberd.pam (thanks to Evgeniy Khramtsov)(EJAB-704)
+	* doc/guide.html: Likewise
+
+	* src/mod_proxy65/mod_proxy65_lib.erl: Send protocol compliant
+	SOCKS5 reply; this breaks support of uncompliant Psi<0.10 (thanks
+	to Felix Geyer)(EJAB-632)
+	* src/mod_proxy65/mod_proxy65_stream.erl: Likewise
+
+	* src/mod_register.erl: When a registration is blocked due to IP
+	limitation, return description in error stanza (EJAB-692)
+	
+2008-07-24  Christophe Romain  <christophe.romain@process-one.net>
+
+	* src/mod_pubsub/mod_pubsub.erl: Allow owner to subscribe/get its own
+	node (EJAB-705)
+
+2008-07-24  Badlop  <badlop@process-one.net>
+
+	* src/Makefile.in: Support for parallel compilation with 'make -j'
+	in multi core CPUs: fix compilation dependencies; compile
+	behaviors before other source code (EJAB-697)(thanks to Jonathan
+	Schleifer)
+	* src/mod_pubsub/Makefile.in: Likewise
+	* src/eldap/Makefile.in: Likewise
+
+	* doc/guide.tex: Document room options allow_visitor_nickchange
+	and allow_visitor_status (EJAB-624)
+	* doc/guide.html: Likewise
+
 2008-07-23  Geoff Cant  <geoff.cant@process-one.net>
 
 	* src/mod_muc/mod_muc_room.erl: new room options,

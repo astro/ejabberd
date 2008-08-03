@@ -5,7 +5,7 @@
 \usepackage{graphics}
 \usepackage{hevea}
 \usepackage[pdftex,colorlinks,unicode,urlcolor=blue,linkcolor=blue,
-        pdftitle=Ejabberd\ Installation\ and\ Operation\ Guide,pdfauthor=Process-one,pdfsubject=ejabberd,pdfkeywords=ejabberd,
+        pdftitle=Ejabberd\ Installation\ and\ Operation\ Guide,pdfauthor=ProcessOne,pdfsubject=ejabberd,pdfkeywords=ejabberd,
         pdfpagelabels=false]{hyperref}
 \usepackage{makeidx}
 %\usepackage{showidx} % Only for verifying the index entries.
@@ -208,9 +208,9 @@ ejabberd Development Team
 \makesection{install.binary}{Installing \ejabberd{} with Binary Installer}
 
 Probably the easiest way to install an \ejabberd{} instant messaging server
-is using the binary installer published by Process-one. 
+is using the binary installer published by ProcessOne. 
 The binary installers of released \ejabberd{} versions 
-are available in the Process-one \ejabberd{} downloads page:
+are available in the ProcessOne \ejabberd{} downloads page:
 \ahrefurl{http://www.process-one.net/en/ejabberd/downloads}
 
 The installer will deploy and configure a full featured \ejabberd{}
@@ -240,6 +240,14 @@ and for example it doesn't read the file ejabberdctl.cfg.
 On a *nix system, if you want ejabberd to be started as daemon at boot time, 
 copy \term{ejabberd.init} from the 'bin' directory to something like \term{/etc/init.d/ejabberd}
 (depending on your distribution) and call \term{/etc/inid.d/ejabberd start} to start it.
+
+If \term{ejabberd} doesn't start correctly and a crash dump is generated,
+there was a severe problem.
+You can try starting \term{ejabberd} with
+the script \term{bin/live.bat} in Windows,
+or with the command \term{bin/ejabberdctl live} in other Operating Systems.
+This way you see the error message provided by Erlang
+and can identify what is exactly the problem.
 
 The \term{ejabberdctl} administration script is included in the \term{bin} directory.
 Please refer to the section~\ref{ejabberdctl} for details about \term{ejabberdctl},
@@ -294,7 +302,7 @@ To compile \ejabberd{} on a `Unix-like' operating system, you need:
 \makesubsection{download}{Download Source Code}
 \ind{install!download}
 
-Released versions of \ejabberd{} are available in the Process-one \ejabberd{} downloads page:
+Released versions of \ejabberd{} are available in the ProcessOne \ejabberd{} downloads page:
 \ahrefurl{http://www.process-one.net/en/ejabberd/downloads}
 
 \ind{Subversion repository}
@@ -395,6 +403,13 @@ ejabberd is running
 
 ejabberdctl stop
 \end{verbatim}
+
+If \term{ejabberd} doesn't start correctly and a crash dump is generated,
+there was a severe problem.
+You can try starting \term{ejabberd} with
+the command \term{ejabberdctl live}
+to see the error message provided by Erlang
+and can identify what is exactly the problem.
 
 Please refer to the section~\ref{ejabberdctl} for details about \term{ejabberdctl},
 and configurable options to fine tune the Erlang runtime system.
@@ -1140,8 +1155,14 @@ version, you can \term{kill(1)} \term{epam} process periodically to reduce its m
 consumption: \ejabberd{} will restart this process immediately.
 \item \term{epam} program tries to turn off delays on authentication failures.
 However, some PAM modules ignore this behavior and rely on their own configuration options.
-The example configuration file \term{ejabberd.pam} shows how to turn off delays in
-\term{pam\_unix.so} module. It is not a ready to use configuration file: you must use it
+You can create a configuration file \term{ejabberd.pam}.
+This example shows how to turn off delays in \term{pam\_unix.so} module:
+\begin{verbatim}
+#%PAM-1.0
+auth        sufficient  pam_unix.so likeauth nullok nodelay
+account     sufficient  pam_unix.so
+\end{verbatim}
+That is not a ready to use configuration file: you must use it
 as a hint when building your own PAM configuration instead. Note that if you want to disable
 delays on authentication failures in the PAM configuration file, you have to restrict access
 to this file, so a malicious user can't use your configuration to perform brute-force
@@ -2467,6 +2488,12 @@ Module options:
   \titem{\{allow\_private\_messages, true\}} Occupants can send private messages to other occupants.
   \titem{\{allow\_query\_users, true\}} Occupants can send IQ queries to other occupants.
   \titem{\{allow\_user\_invites, false\}} Allow occupants to send invitations.
+  \titem{\{allow\_visitor\_nickchange, true\}} Allow visitors to
+  change nickname.
+  \titem{\{allow\_visitor\_status, true\}} Allow visitors to send
+  status text in presence updates.  If disallowed, the \term{status}
+  text is stripped before broadcasting the presence update to all
+  the room occupants.
   \titem{\{anonymous, true\}} Occupants are allowed to see the real JIDs of other occupants.
   \titem{\{logging, false\}} The public messages are logged using \term{mod\_muc\_log}.
   \titem{\{max\_users, 200\}} Maximum number of occupants in the room.
@@ -4107,7 +4134,7 @@ Thanks to all people who contributed to this guide:
 \makechapter{copyright}{Copyright Information}
 
 Ejabberd Installation and Operation Guide.\\
-Copyright \copyright{} 2003 --- 2008 Process-one
+Copyright \copyright{} 2003 --- 2008 ProcessOne
 
 This document is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
