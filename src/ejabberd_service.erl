@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : ejabberd_service.erl
 %%% Author  : Alexey Shchepin <alexey@process-one.net>
-%%% Purpose : External component management
+%%% Purpose : External component management (XEP-0114)
 %%% Created :  6 Dec 2002 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
@@ -73,7 +73,8 @@
 -define(STREAM_TRAILER, "</stream:stream>").
 
 -define(INVALID_HEADER_ERR,
-	"<stream:stream>"
+	"<stream:stream "
+	"xmlns:stream='http://etherx.jabber.org/streams'>"
 	"<stream:error>Invalid Stream Header</stream:error>"
 	"</stream:stream>"
        ).
@@ -168,11 +169,15 @@ init([{SockMod, Socket}, Opts]) ->
 %%----------------------------------------------------------------------
 
 wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
-    % TODO
     case xml:get_attr_s("xmlns", Attrs) of
 	"jabber:component:accept" ->
+	    %% Note: XEP-0114 requires to check that destination is a Jabber
+	    %% component served by this Jabber server.
+	    %% However several transports don't respect that,
+	    %% so ejabberd doesn't check 'to' attribute (EJAB-717)
+	    To = xml:get_attr_s("to", Attrs),
 	    Header = io_lib:format(?STREAM_HEADER,
-				   [StateData#state.streamid, ?MYNAME]),
+				   [StateData#state.streamid, xml:crypt(To)]),
 	    send_text(StateData, Header),
 	    {next_state, wait_for_handshake, StateData};
 	_ ->
