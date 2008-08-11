@@ -60,7 +60,8 @@
 	 datetime_string_to_timestamp/1,
 	 decode_base64/1,
 	 encode_base64/1,
-	 ip_to_list/1]).
+	 ip_to_list/1,
+	 xmlstreamerror_element/1]).
 
 -include("jlib.hrl").
 
@@ -683,3 +684,8 @@ ip_to_list({IP, _Port}) ->
     ip_to_list(IP);
 ip_to_list({A,B,C,D}) ->
     lists:flatten(io_lib:format("~w.~w.~w.~w",[A,B,C,D])).
+
+xmlstreamerror_element(bad_namespace_prefix) ->
+    xml:element_to_string(?SERR_BAD_NAMESPACE_PREFIX);
+xmlstreamerror_element(_) ->
+    xml:element_to_string(?SERR_XML_NOT_WELL_FORMED).

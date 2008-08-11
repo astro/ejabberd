@@ -386,11 +386,11 @@ wait_for_stream({xmlstreamend, _}, StateData) ->
     send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_stream({xmlstreamerror, _}, StateData) ->
+wait_for_stream({xmlstreamerror, Reason}, StateData) ->
     Header = io_lib:format(?STREAM_HEADER,
 			   ["none", ?MYNAME, " version='1.0'", ""]),
     send_text(StateData,
-	      Header ++ ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      Header ++ jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_stream(closed, StateData) ->
@@ -524,8 +524,8 @@ wait_for_auth({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_auth({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_auth({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_auth(closed, StateData) ->
@@ -663,8 +663,8 @@ wait_for_feature_request({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_feature_request({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_feature_request({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_feature_request(closed, StateData) ->
@@ -731,8 +731,8 @@ wait_for_sasl_response({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_sasl_response({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_sasl_response({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_sasl_response(closed, StateData) ->
@@ -780,8 +780,8 @@ wait_for_bind({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_bind({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_bind({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_bind(closed, StateData) ->
@@ -849,8 +849,8 @@ wait_for_session({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_session({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_session({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_session(closed, StateData) ->
@@ -954,8 +954,8 @@ session_established({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-session_established({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+session_established({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 session_established(closed, StateData) ->

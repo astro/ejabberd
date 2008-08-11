@@ -228,9 +228,9 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 	    {stop, normal, StateData}
     end;
 
-wait_for_stream({xmlstreamerror, _}, StateData) ->
+wait_for_stream({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?STREAM_HEADER("") ++ ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      ?STREAM_HEADER("") ++ jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_stream(timeout, StateData) ->
@@ -331,8 +331,8 @@ wait_for_feature_request({xmlstreamend, _Name}, StateData) ->
     send_text(StateData, ?STREAM_TRAILER),
     {stop, normal, StateData};
 
-wait_for_feature_request({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_feature_request({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_feature_request(closed, StateData) ->
@@ -476,9 +476,9 @@ stream_established({invalid, From, To}, StateData) ->
 stream_established({xmlstreamend, _Name}, StateData) ->
     {stop, normal, StateData};
 
-stream_established({xmlstreamerror, _}, StateData) ->
+stream_established({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 stream_established(timeout, StateData) ->

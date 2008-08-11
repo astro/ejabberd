@@ -185,11 +185,11 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 	    {stop, normal, StateData}
     end;
 
-wait_for_stream({xmlstreamerror, _}, StateData) ->
+wait_for_stream({xmlstreamerror, Reason}, StateData) ->
     Header = io_lib:format(?STREAM_HEADER,
 			   ["none", ?MYNAME]),
     send_text(StateData,
-	      Header ++ ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      Header ++ jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_stream(closed, StateData) ->
@@ -221,8 +221,8 @@ wait_for_handshake({xmlstreamelement, El}, StateData) ->
 wait_for_handshake({xmlstreamend, _Name}, StateData) ->
     {stop, normal, StateData};
 
-wait_for_handshake({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+wait_for_handshake({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_handshake(closed, StateData) ->
@@ -272,8 +272,8 @@ stream_established({xmlstreamend, _Name}, StateData) ->
     % TODO
     {stop, normal, StateData};
 
-stream_established({xmlstreamerror, _}, StateData) ->
-    send_text(StateData, ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+stream_established({xmlstreamerror, Reason}, StateData) ->
+    send_text(StateData, jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 stream_established(closed, StateData) ->

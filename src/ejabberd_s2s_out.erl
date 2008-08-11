@@ -290,9 +290,9 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 	    {stop, normal, StateData}
     end;
 
-wait_for_stream({xmlstreamerror, _}, StateData) ->
+wait_for_stream({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     ?INFO_MSG("Closing s2s connection: ~s -> ~s (invalid xml)",
 	      [StateData#state.myname, StateData#state.server]),
     {stop, normal, StateData};
@@ -368,11 +368,11 @@ wait_for_validation({xmlstreamend, _Name}, StateData) ->
 	      [StateData#state.myname, StateData#state.server]),
     {stop, normal, StateData};
 
-wait_for_validation({xmlstreamerror, _}, StateData) ->
+wait_for_validation({xmlstreamerror, Reason}, StateData) ->
     ?INFO_MSG("wait for validation: ~s -> ~s (xmlstreamerror)",
 	      [StateData#state.myname, StateData#state.server]),
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     {stop, normal, StateData};
 
 wait_for_validation(timeout, #state{verify = {VPid, VKey, SID}} = StateData)
@@ -490,9 +490,9 @@ wait_for_features({xmlstreamend, _Name}, StateData) ->
     ?INFO_MSG("wait_for_features: xmlstreamend", []),
     {stop, normal, StateData};
 
-wait_for_features({xmlstreamerror, _}, StateData) ->
+wait_for_features({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     ?INFO_MSG("wait for features: xmlstreamerror", []),
     {stop, normal, StateData};
 
@@ -558,9 +558,9 @@ wait_for_auth_result({xmlstreamend, _Name}, StateData) ->
     ?INFO_MSG("wait for auth result: xmlstreamend", []),
     {stop, normal, StateData};
 
-wait_for_auth_result({xmlstreamerror, _}, StateData) ->
+wait_for_auth_result({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     ?INFO_MSG("wait for auth result: xmlstreamerror", []),
     {stop, normal, StateData};
 
@@ -620,9 +620,9 @@ wait_for_starttls_proceed({xmlstreamend, _Name}, StateData) ->
     ?INFO_MSG("wait for starttls proceed: xmlstreamend", []),
     {stop, normal, StateData};
 
-wait_for_starttls_proceed({xmlstreamerror, _}, StateData) ->
+wait_for_starttls_proceed({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     ?INFO_MSG("wait for starttls proceed: xmlstreamerror", []),
     {stop, normal, StateData};
 
@@ -684,9 +684,9 @@ stream_established({xmlstreamend, _Name}, StateData) ->
 	      [StateData#state.myname, StateData#state.server]),
     {stop, normal, StateData};
 
-stream_established({xmlstreamerror, _}, StateData) ->
+stream_established({xmlstreamerror, Reason}, StateData) ->
     send_text(StateData,
-	      ?INVALID_XML_ERR ++ ?STREAM_TRAILER),
+	      jlib:xmlstreamerror_element(Reason) ++ ?STREAM_TRAILER),
     ?INFO_MSG("stream established: ~s -> ~s (xmlstreamerror)",
 	      [StateData#state.myname, StateData#state.server]),
     {stop, normal, StateData};
