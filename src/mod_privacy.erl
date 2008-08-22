@@ -58,6 +58,8 @@ start(Host, Opts) ->
     ejabberd_hooks:add(privacy_updated_list, Host,
 		       ?MODULE, updated_list, 50),
     gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_PRIVACY,
+				  ?MODULE, process_iq, IQDisc),
+    gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_BLOCKING,
 				  ?MODULE, process_iq, IQDisc).
 
 stop(Host) ->
@@ -71,17 +73,19 @@ stop(Host) ->
 			  ?MODULE, check_packet, 50),
     ejabberd_hooks:delete(privacy_updated_list, Host,
 			  ?MODULE, updated_list, 50),
-    gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_PRIVACY).
+    gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_PRIVACY),
+    gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_BLOCKING).
 
 process_iq(_From, _To, IQ) ->
     SubEl = IQ#iq.sub_el,
     IQ#iq{type = error, sub_el = [SubEl, ?ERR_NOT_ALLOWED]}.
 
 
-process_iq_get(_, From, _To, #iq{sub_el = SubEl},
+process_iq_get(_, From, _To,
+	       #iq{xmlns = ?NS_PRIVACY,
+		   sub_el = {xmlelement, "query", _, Els}},
 	       #userlist{name = Active}) ->
     #jid{luser = LUser, lserver = LServer} = From,
-    {xmlelement, _, _, Els} = SubEl,
     case xml:remove_cdata(Els) of
 	[] ->
 	    process_lists_get(LUser, LServer, Active);
@@ -95,7 +99,14 @@ process_iq_get(_, From, _To, #iq{sub_el = SubEl},
 	    end;
 	_ ->
 	    {error, ?ERR_BAD_REQUEST}
-    end.
+    end;
+
+process_iq_get(_, From, _To,
+	       #iq{xmlns = ?NS_BLOCKING,
+		   sub_el = {xmlelement, "blocklist", _, _}},
+	       _) ->
+    #jid{luser = LUser, lserver = LServer} = From,
+    process_blocklist_get(LUser, LServer).
 
 
 process_lists_get(LUser, LServer, Active) ->
@@ -136,6 +147,56 @@ process_lists_get(LUser, LServer, Active) ->
 		       ADItems}]}
 	    end
     end.
+
+process_blocklist_get(LUser, LServer) ->
+    case catch mnesia:dirty_read(privacy, {LUser, LServer}) of
+	{'EXIT', _Reason} ->
+	    {error, ?ERR_INTERNAL_SERVER_ERROR};
+	[] ->
+	    {result, [{xmlelement, "query", [{"xmlns", ?NS_BLOCKING}], []}]};
+	[#privacy{default = Default, lists = Lists}] ->
+	    case lists:keysearch(Default, 1, Lists) of
+		{value, {_, List}} ->
+		    LItems = items_to_blocklist_xml(List, []),
+		    {result,
+		     [{xmlelement, "blocklist", [{"xmlns", ?NS_BLOCKING}],
+		       LItems}]};
+		_ ->
+		    {result, [{xmlelement, "query", [{"xmlns", ?NS_BLOCKING}], []}]}
+	    end
+    end.
+
+
+items_to_blocklist_xml([], Xml) ->
+    Xml;
+
+items_to_blocklist_xml([#listitem{type = jid,
+				  action = deny,
+				  value = JID} = Item | Items], Xml) ->
+    case Item of
+	#listitem{match_all = true} ->
+	    Match = true;
+	#listitem{match_iq = true,
+		  match_message = true,
+		  match_presence_in = true,
+		  match_presence_out = true} ->
+	    Match = true;
+	_ ->
+	    Match = false
+    end,
+    if
+	Match ->
+	    items_to_blocklist_xml(Items,
+				   [{xmlelement, "item",
+				     [{"jid", jlib:jid_to_string(JID)}], []} | Xml]);
+	true ->
+	    items_to_blocklist_xml(Items, Xml)
+    end;
+
+% Skip Privacy List items than cannot be mapped to Blocking items
+items_to_blocklist_xml([_ | Items], Xml) ->
+    items_to_blocklist_xml(Items, Xml).
+
 
 process_list_get(LUser, LServer, {value, Name}) ->
     case catch mnesia:dirty_read(privacy, {LUser, LServer}) of

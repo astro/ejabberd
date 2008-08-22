@@ -28,6 +28,7 @@
 -define(NS_SEARCH,       "jabber:iq:search").
 -define(NS_ROSTER,       "jabber:iq:roster").
 -define(NS_PRIVACY,      "jabber:iq:privacy").
+-define(NS_BLOCKING,     "urn:xmpp:blocking").
 -define(NS_PRIVATE,      "jabber:iq:private").
 -define(NS_VERSION,      "jabber:iq:version").
 -define(NS_TIME,         "jabber:iq:time").

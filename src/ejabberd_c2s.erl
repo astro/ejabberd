@@ -906,7 +906,9 @@ session_established({xmlstreamelement, El}, StateData) ->
 				StateData;
 			    _PrivList ->
 				case jlib:iq_query_info(NewEl) of
-				    #iq{xmlns = ?NS_PRIVACY} = IQ ->
+				    #iq{xmlns = XmlNs} = IQ
+				    when XmlNs == ?NS_PRIVACY;
+					 XmlNs == ?NS_BLOCKING ->
 					process_privacy_iq(
 					  FromJID, ToJID, IQ, StateData);
 				    _ ->
