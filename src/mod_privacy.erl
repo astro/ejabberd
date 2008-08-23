@@ -148,24 +148,6 @@ process_lists_get(LUser, LServer, Active) ->
 	    end
     end.
 
-process_blocklist_get(LUser, LServer) ->
-    case catch mnesia:dirty_read(privacy, {LUser, LServer}) of
-	{'EXIT', _Reason} ->
-	    {error, ?ERR_INTERNAL_SERVER_ERROR};
-	[] ->
-	    {result, [{xmlelement, "query", [{"xmlns", ?NS_BLOCKING}], []}]};
-	[#privacy{default = Default, lists = Lists}] ->
-	    case lists:keysearch(Default, 1, Lists) of
-		{value, {_, List}} ->
-		    LItems = items_to_blocklist_xml(List, []),
-		    {result,
-		     [{xmlelement, "blocklist", [{"xmlns", ?NS_BLOCKING}],
-		       LItems}]};
-		_ ->
-		    {result, [{xmlelement, "query", [{"xmlns", ?NS_BLOCKING}], []}]}
-	    end
-    end.
-
 
 process_list_get(LUser, LServer, {value, Name}) ->
     case catch mnesia:dirty_read(privacy, {LUser, LServer}) of
@@ -271,6 +253,30 @@ list_to_action(S) ->
 	"deny" -> deny
     end.
 
+
+process_blocklist_get(LUser, LServer) ->
+    case catch mnesia:dirty_read(privacy, {LUser, LServer}) of
+	{'EXIT', _Reason} ->
+	    {error, ?ERR_INTERNAL_SERVER_ERROR};
+	[] ->
+	    {result, [{xmlelement, "blocklist", [{"xmlns", ?NS_BLOCKING}], []}]};
+	[#privacy{default = Default, lists = Lists}] ->
+	    case lists:keysearch(Default, 1, Lists) of
+		{value, {_, List}} ->
+		    JIDs = list_to_blocklist_jids(List, []),
+		    Items = lists:map(
+			      fun(JID) ->
+				      ?DEBUG("JID: ~p",[JID]),
+				      {xmlelement, "item",
+				       [{"jid", jlib:jid_to_string(JID)}], []}
+			      end, JIDs),
+		    {result,
+		     [{xmlelement, "blocklist", [{"xmlns", ?NS_BLOCKING}],
+		       Items}]};
+		_ ->
+		    {result, [{xmlelement, "blocklist", [{"xmlns", ?NS_BLOCKING}], []}]}
+	    end
+    end.
 
 
 process_iq_set(_, From, _To, #iq{xmlns = ?NS_PRIVACY,
@@ -451,7 +457,62 @@ process_list_set(_LUser, _LServer, false, _Els) ->
 
 
 process_blocklist_block(LUser, LServer, JIDs) ->
-    ok.
+    F =
+	fun() ->
+		case mnesia:wread({privacy, {LUser, LServer}}) of
+		    [] ->
+			% No lists yet
+			P = #privacy{us = {LUser, LServer}},
+			% TODO: i18n here:
+			NewDefault = "Blocked contacts",
+			NewLists1 = [],
+			List = [];
+		    [#privacy{default = Default,
+			      lists = Lists} = P] ->
+			case lists:keysearch(Default, 1, Lists) of
+			    {value, {_, List}} ->
+				% Default list exists
+				NewDefault = Default,
+				NewLists1 = lists:keydelete(Default, 1, Lists);
+			    false ->
+				% No default list yet, create one
+				% TODO: i18n here:
+				NewDefault = "Blocked contacts",
+				NewLists1 = Lists,
+				List = []
+			end
+		end,
+
+		AlreadyBlocked = list_to_blocklist_jids(List, []),
+		NewList =
+		    lists:foldr(fun(JID, List1) ->
+					case lists:member(JID, AlreadyBlocked) of
+					    true ->
+						List1;
+					    false ->
+						[#listitem{type = jid,
+							   value = JID,
+							   action = deny,
+							   order = 0,
+							   match_all = true
+							  } | List1]
+					end
+				end, List, JIDs),
+		NewLists = [{NewDefault, NewList} | NewLists1],
+		mnesia:write(P#privacy{default = NewDefault,
+				       lists = NewLists}),
+		{result, []}
+	end,
+    case mnesia:transaction(F) of
+	{atomic, {error, _} = Error} ->
+	    Error;
+	{atomic, {result, _} = Res} ->
+	    % TODO: push
+	    Res;
+	_ ->
+	    {error, ?ERR_INTERNAL_SERVER_ERROR}
+    end.
+
 
 process_blocklist_unblock_all(LUser, LServer) ->
     F =
@@ -492,8 +553,49 @@ process_blocklist_unblock_all(LUser, LServer) ->
 	    {error, ?ERR_INTERNAL_SERVER_ERROR}
     end.
 
+
 process_blocklist_unblock(LUser, LServer, JIDs) ->
-    ok.
+    F =
+	fun() ->
+		case mnesia:read({privacy, {LUser, LServer}}) of
+		    [] ->
+			% No lists, nothing to unblock
+			{result, []};
+		    [#privacy{default = Default,
+			      lists = Lists} = P] ->
+			case lists:keysearch(Default, 1, Lists) of
+			    {value, {_, List}} ->
+				% Default list, remove matching deny items
+				NewList =
+				    lists:filter(
+				      fun(#listitem{action = deny,
+						    type = jid,
+						    value = JID}) ->
+					      not(lists:member(JID, JIDs));
+					 (_) ->
+					      true
+				      end, List),
+
+				NewLists1 = lists:keydelete(Default, 1, Lists),
+				NewLists = [{Default, NewList} | NewLists1],
+				mnesia:write(P#privacy{lists = NewLists}),
+
+				{result, []};
+			    false ->
+				% No default list, nothing to unblock
+				{result, []}
+			end
+		end
+	end,
+    case mnesia:transaction(F) of
+	{atomic, {error, _} = Error} ->
+	    Error;
+	{atomic, {result, _} = Res} ->
+	    % TODO: push
+	    Res;
+	_ ->
+	    {error, ?ERR_INTERNAL_SERVER_ERROR}
+    end.
 
 
 parse_items([]) ->
@@ -602,12 +704,12 @@ parse_matches1(_Item, [{xmlelement, _, _, _} | _Els]) ->
     false.
 
 
-items_to_blocklist_xml([], Els) ->
-    lists:reverse(Els); % makes it prettier but slower
+list_to_blocklist_jids([], JIDs) ->
+    JIDs;
 
-items_to_blocklist_xml([#listitem{type = jid,
+list_to_blocklist_jids([#listitem{type = jid,
 				  action = deny,
-				  value = JID} = Item | Items], Els) ->
+				  value = JID} = Item | Items], JIDs) ->
     case Item of
 	#listitem{match_all = true} ->
 	    Match = true;
@@ -621,16 +723,14 @@ items_to_blocklist_xml([#listitem{type = jid,
     end,
     if
 	Match ->
-	    items_to_blocklist_xml(Items,
-				   [{xmlelement, "item",
-				     [{"jid", jlib:jid_to_string(JID)}], []} | Els]);
+	    list_to_blocklist_jids(Items, [JID | JIDs]);
 	true ->
-	    items_to_blocklist_xml(Items, Els)
+	    list_to_blocklist_jids(Items, JIDs)
     end;
 
 % Skip Privacy List items than cannot be mapped to Blocking items
-items_to_blocklist_xml([_ | Items], Els) ->
-    items_to_blocklist_xml(Items, Els).
+list_to_blocklist_jids([_ | Items], JIDs) ->
+    list_to_blocklist_jids(Items, JIDs).
 
 
 parse_blocklist_items([], JIDs) ->
@@ -639,7 +739,7 @@ parse_blocklist_items([], JIDs) ->
 parse_blocklist_items([{xmlelement, "item", Attrs, _} | Els], JIDs) ->
     case xml:get_attr("jid", Attrs) of
 	{value, JID} ->
-	    parse_blocklist_items(Els, [JID | JIDs]);
+	    parse_blocklist_items(Els, [jlib:string_to_jid(JID) | JIDs]);
 	false ->
 	    % Tolerate missing jid attribute
 	    parse_blocklist_items(Els, JIDs)
