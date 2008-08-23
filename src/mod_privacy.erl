@@ -167,37 +167,6 @@ process_blocklist_get(LUser, LServer) ->
     end.
 
 
-items_to_blocklist_xml([], Xml) ->
-    Xml;
-
-items_to_blocklist_xml([#listitem{type = jid,
-				  action = deny,
-				  value = JID} = Item | Items], Xml) ->
-    case Item of
-	#listitem{match_all = true} ->
-	    Match = true;
-	#listitem{match_iq = true,
-		  match_message = true,
-		  match_presence_in = true,
-		  match_presence_out = true} ->
-	    Match = true;
-	_ ->
-	    Match = false
-    end,
-    if
-	Match ->
-	    items_to_blocklist_xml(Items,
-				   [{xmlelement, "item",
-				     [{"jid", jlib:jid_to_string(JID)}], []} | Xml]);
-	true ->
-	    items_to_blocklist_xml(Items, Xml)
-    end;
-
-% Skip Privacy List items than cannot be mapped to Blocking items
-items_to_blocklist_xml([_ | Items], Xml) ->
-    items_to_blocklist_xml(Items, Xml).
-
-
 process_list_get(LUser, LServer, {value, Name}) ->
     case catch mnesia:dirty_read(privacy, {LUser, LServer}) of
 	{'EXIT', _Reason} ->
@@ -304,9 +273,9 @@ list_to_action(S) ->
 
 
 
-process_iq_set(_, From, _To, #iq{sub_el = SubEl}) ->
+process_iq_set(_, From, _To, #iq{xmlns = ?NS_PRIVACY,
+				 sub_el = {xmlelement, "query", _, Els}}) ->
     #jid{luser = LUser, lserver = LServer} = From,
-    {xmlelement, _, _, Els} = SubEl,
     case xml:remove_cdata(Els) of
 	[{xmlelement, Name, Attrs, SubEls}] ->
 	    ListName = xml:get_attr("name", Attrs),
@@ -323,8 +292,25 @@ process_iq_set(_, From, _To, #iq{sub_el = SubEl}) ->
 	    end;
 	_ ->
 	    {error, ?ERR_BAD_REQUEST}
-    end.
+    end;
 
+process_iq_set(_, From, _To, #iq{xmlns = ?NS_BLOCKING,
+				 sub_el = {xmlelement, SubElName, _, SubEls}}) ->
+    #jid{luser = LUser, lserver = LServer} = From,
+    case {SubElName, xml:remove_cdata(SubEls)} of
+	{"block", []} ->
+	    {error, ?ERR_BAD_REQUEST};
+	{"block", Els} ->
+	    JIDs = parse_blocklist_items(Els, []),
+	    process_blocklist_block(LUser, LServer, JIDs);
+	{"unblock", []} ->
+	    process_blocklist_unblock_all(LUser, LServer);
+	{"unblock", Els} ->
+	    JIDs = parse_blocklist_items(Els, []),
+	    process_blocklist_unblock(LUser, LServer, JIDs);
+	_ ->
+	    {error, ?ERR_BAD_REQUEST}
+    end.
 
 process_default_set(LUser, LServer, {value, Name}) ->
     F = fun() ->
@@ -464,6 +450,52 @@ process_list_set(_LUser, _LServer, false, _Els) ->
     {error, ?ERR_BAD_REQUEST}.
 
 
+process_blocklist_block(LUser, LServer, JIDs) ->
+    ok.
+
+process_blocklist_unblock_all(LUser, LServer) ->
+    F =
+	fun() ->
+		case mnesia:read({privacy, {LUser, LServer}}) of
+		    [] ->
+			% No lists, nothing to unblock
+			{result, []};
+		    [#privacy{default = Default,
+			      lists = Lists} = P] ->
+			case lists:keysearch(Default, 1, Lists) of
+			    {value, {_, List}} ->
+				% Default list, remove all deny items
+				NewList =
+				    lists:filter(
+				      fun(#listitem{action = A}) ->
+					      A =/= deny
+				      end, List),
+
+				NewLists1 = lists:keydelete(Default, 1, Lists),
+				NewLists = [{Default, NewList} | NewLists1],
+				mnesia:write(P#privacy{lists = NewLists}),
+
+				{result, []};
+			    false ->
+				% No default list, nothing to unblock
+				{result, []}
+			end
+		end
+	end,
+    case mnesia:transaction(F) of
+	{atomic, {error, _} = Error} ->
+	    Error;
+	{atomic, {result, _} = Res} ->
+	    % TODO: push
+	    Res;
+	_ ->
+	    {error, ?ERR_INTERNAL_SERVER_ERROR}
+    end.
+
+process_blocklist_unblock(LUser, LServer, JIDs) ->
+    ok.
+
+
 parse_items([]) ->
     remove;
 parse_items(Els) ->
@@ -570,8 +602,52 @@ parse_matches1(_Item, [{xmlelement, _, _, _} | _Els]) ->
     false.
 
 
+items_to_blocklist_xml([], Els) ->
+    lists:reverse(Els); % makes it prettier but slower
+
+items_to_blocklist_xml([#listitem{type = jid,
+				  action = deny,
+				  value = JID} = Item | Items], Els) ->
+    case Item of
+	#listitem{match_all = true} ->
+	    Match = true;
+	#listitem{match_iq = true,
+		  match_message = true,
+		  match_presence_in = true,
+		  match_presence_out = true} ->
+	    Match = true;
+	_ ->
+	    Match = false
+    end,
+    if
+	Match ->
+	    items_to_blocklist_xml(Items,
+				   [{xmlelement, "item",
+				     [{"jid", jlib:jid_to_string(JID)}], []} | Els]);
+	true ->
+	    items_to_blocklist_xml(Items, Els)
+    end;
+
+% Skip Privacy List items than cannot be mapped to Blocking items
+items_to_blocklist_xml([_ | Items], Els) ->
+    items_to_blocklist_xml(Items, Els).
 
 
+parse_blocklist_items([], JIDs) ->
+    JIDs;
+
+parse_blocklist_items([{xmlelement, "item", Attrs, _} | Els], JIDs) ->
+    case xml:get_attr("jid", Attrs) of
+	{value, JID} ->
+	    parse_blocklist_items(Els, [JID | JIDs]);
+	false ->
+	    % Tolerate missing jid attribute
+	    parse_blocklist_items(Els, JIDs)
+    end;
+
+parse_blocklist_items([_ | Els], JIDs) ->
+    % Tolerate unknown elements
+    parse_blocklist_items(Els, JIDs).
 
 
 
