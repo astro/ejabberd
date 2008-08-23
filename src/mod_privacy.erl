@@ -738,8 +738,9 @@ parse_blocklist_items([], JIDs) ->
 
 parse_blocklist_items([{xmlelement, "item", Attrs, _} | Els], JIDs) ->
     case xml:get_attr("jid", Attrs) of
-	{value, JID} ->
-	    parse_blocklist_items(Els, [jlib:string_to_jid(JID) | JIDs]);
+	{value, JID1} ->
+	    JID = jlib:jid_tolower(jlib:string_to_jid(JID1)),
+	    parse_blocklist_items(Els, [JID | JIDs]);
 	false ->
 	    % Tolerate missing jid attribute
 	    parse_blocklist_items(Els, JIDs)
