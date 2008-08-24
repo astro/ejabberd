@@ -60,7 +60,8 @@ start(Host, Opts) ->
     gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_PRIVACY,
 				  ?MODULE, process_iq, IQDisc),
     gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_BLOCKING,
-				  ?MODULE, process_iq, IQDisc).
+				  ?MODULE, process_iq, IQDisc),
+    mod_disco:register_feature(Host, ?NS_BLOCKING).
 
 stop(Host) ->
     ejabberd_hooks:delete(privacy_iq_get, Host,
@@ -74,7 +75,8 @@ stop(Host) ->
     ejabberd_hooks:delete(privacy_updated_list, Host,
 			  ?MODULE, updated_list, 50),
     gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_PRIVACY),
-    gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_BLOCKING).
+    gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_BLOCKING),
+    mod_disco:unregister_feature(Host, ?NS_BLOCKING).
 
 process_iq(_From, _To, IQ) ->
     SubEl = IQ#iq.sub_el,
