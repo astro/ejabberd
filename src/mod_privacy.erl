@@ -408,13 +408,7 @@ process_list_set(LUser, LServer, {value, Name}, Els) ->
 		{atomic, {error, _} = Error} ->
 		    Error;
 		{atomic, {result, _} = Res} ->
-		    ejabberd_router:route(
-		      jlib:make_jid(LUser, LServer, ""),
-		      jlib:make_jid(LUser, LServer, ""),
-		      {xmlelement, "broadcast", [],
-		       [{privacy_list,
-			 #userlist{name = Name, list = []},
-			 Name}]}),
+		    broadcast_list_update(LUser, LServer, Name, []),
 		    Res;
 		_ ->
 		    {error, ?ERR_INTERNAL_SERVER_ERROR}
@@ -439,13 +433,7 @@ process_list_set(LUser, LServer, {value, Name}, Els) ->
 		{atomic, {error, _} = Error} ->
 		    Error;
 		{atomic, {result, _} = Res} ->
-		    ejabberd_router:route(
-		      jlib:make_jid(LUser, LServer, ""),
-		      jlib:make_jid(LUser, LServer, ""),
-		      {xmlelement, "broadcast", [],
-		       [{privacy_list,
-			 #userlist{name = Name, list = List},
-			 Name}]}),
+		    broadcast_list_update(LUser, LServer, Name, List),
 		    Res;
 		_ ->
 		    {error, ?ERR_INTERNAL_SERVER_ERROR}
@@ -501,14 +489,15 @@ process_blocklist_block(LUser, LServer, JIDs) ->
 		NewLists = [{NewDefault, NewList} | NewLists1],
 		mnesia:write(P#privacy{default = NewDefault,
 				       lists = NewLists}),
-		{result, []}
+		{ok, NewDefault, NewList}
 	end,
     case mnesia:transaction(F) of
 	{atomic, {error, _} = Error} ->
 	    Error;
-	{atomic, {result, _} = Res} ->
-	    % TODO: push
-	    Res;
+	{atomic, {ok, Default, List}} ->
+	    broadcast_list_update(LUser, LServer, Default, List),
+	    broadcast_blocklist_event(LUser, LServer, {block, JIDs}),
+	    {result, []};
 	_ ->
 	    {error, ?ERR_INTERNAL_SERVER_ERROR}
     end.
@@ -520,7 +509,7 @@ process_blocklist_unblock_all(LUser, LServer) ->
 		case mnesia:read({privacy, {LUser, LServer}}) of
 		    [] ->
 			% No lists, nothing to unblock
-			{result, []};
+			ok;
 		    [#privacy{default = Default,
 			      lists = Lists} = P] ->
 			case lists:keysearch(Default, 1, Lists) of
@@ -536,19 +525,22 @@ process_blocklist_unblock_all(LUser, LServer) ->
 				NewLists = [{Default, NewList} | NewLists1],
 				mnesia:write(P#privacy{lists = NewLists}),
 
-				{result, []};
+				{ok, Default, NewList};
 			    false ->
 				% No default list, nothing to unblock
-				{result, []}
+				ok
 			end
 		end
 	end,
     case mnesia:transaction(F) of
 	{atomic, {error, _} = Error} ->
 	    Error;
-	{atomic, {result, _} = Res} ->
-	    % TODO: push
-	    Res;
+	{atomic, ok} ->
+	    {result, []};
+	{atomic, {ok, Default, List}} ->
+	    broadcast_list_update(LUser, LServer, Default, List),
+	    broadcast_blocklist_event(LUser, LServer, unblock_all),
+	    {result, []};
 	_ ->
 	    {error, ?ERR_INTERNAL_SERVER_ERROR}
     end.
@@ -560,7 +552,7 @@ process_blocklist_unblock(LUser, LServer, JIDs) ->
 		case mnesia:read({privacy, {LUser, LServer}}) of
 		    [] ->
 			% No lists, nothing to unblock
-			{result, []};
+			ok;
 		    [#privacy{default = Default,
 			      lists = Lists} = P] ->
 			case lists:keysearch(Default, 1, Lists) of
@@ -580,23 +572,43 @@ process_blocklist_unblock(LUser, LServer, JIDs) ->
 				NewLists = [{Default, NewList} | NewLists1],
 				mnesia:write(P#privacy{lists = NewLists}),
 
-				{result, []};
+				{ok, Default, NewList};
 			    false ->
 				% No default list, nothing to unblock
-				{result, []}
+				ok
 			end
 		end
 	end,
     case mnesia:transaction(F) of
 	{atomic, {error, _} = Error} ->
 	    Error;
-	{atomic, {result, _} = Res} ->
-	    % TODO: push
-	    Res;
+	{atomic, ok} ->
+	    {result, []};
+	{atomic, {ok, Default, List}} ->
+	    broadcast_list_update(LUser, LServer, Default, List),
+	    broadcast_blocklist_event(LUser, LServer, {unblock, JIDs}),
+	    {result, []};
 	_ ->
 	    {error, ?ERR_INTERNAL_SERVER_ERROR}
     end.
 
+
+broadcast_list_update(LUser, LServer, Name, List) ->
+    JID = jlib:make_jid(LUser, LServer, ""),
+    ejabberd_router:route(
+      JID, JID,
+      {xmlelement, "broadcast", [],
+       [{privacy_list, #userlist{name = Name,
+				 list = List}, Name}]}).
+
+
+broadcast_blocklist_event(LUser, LServer, Event) ->
+    JID = jlib:make_jid(LUser, LServer, ""),
+    ejabberd_router:route(
+      JID, JID,
+      {xmlelement, "broadcast", [],
+       [{blocking, Event}]}).
+    
 
 parse_items([]) ->
     remove;

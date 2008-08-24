@@ -1177,6 +1177,46 @@ handle_info({route, From, To, Packet}, StateName, StateData) ->
 				send_element(StateData, PrivPushEl),
 				{false, Attrs, StateData#state{privacy_list = NewPL}}
 			end;
+		    [{blocking, What}] ->
+			SubEl =
+			    case What of
+				{block, JIDs} ->
+				    {xmlelement, "block",
+				     [{"xmlns", ?NS_BLOCKING}],
+				     lists:map(
+				       fun(JID) ->
+					       {xmlelement, "item",
+						[{"jid", jlib:jid_to_string(JID)}],
+						[]}
+				       end, JIDs)};
+				{unblock, JIDs} ->
+				    {xmlelement, "unblock",
+				     [{"xmlns", ?NS_BLOCKING}],
+				     lists:map(
+				       fun(JID) ->
+					       {xmlelement, "item",
+						[{"jid", jlib:jid_to_string(JID)}],
+						[]}
+				       end, JIDs)};
+				unblock_all ->
+				    {xmlelement, "unblock",
+				     [{"xmlns", ?NS_BLOCKING}], []}
+			    end,
+			PrivPushIQ =
+			    #iq{type = set, xmlns = ?NS_BLOCKING,
+				id = "push",
+				sub_el = [SubEl]},
+			PrivPushEl =
+			    jlib:replace_from_to(
+			      jlib:jid_remove_resource(
+				StateData#state.jid),
+			      StateData#state.jid,
+			      jlib:iq_to_xml(PrivPushIQ)),
+			send_element(StateData, PrivPushEl),
+			% No need to replace active privacy list here,
+			% blocking pushes are always accompanied by
+			% Privacy List pushes
+			{false, Attrs, StateData};
 		    _ ->
 			{false, Attrs, StateData}
 		end;
