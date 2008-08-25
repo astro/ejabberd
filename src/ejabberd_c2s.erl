@@ -76,9 +76,13 @@
 		jid,
 		user = "", server = ?MYNAME, resource = "",
 		sid,
+		% Subscribed to
 		pres_t = ?SETS:new(),
+		% Subscribed from
 		pres_f = ?SETS:new(),
+		% Directed to
 		pres_a = ?SETS:new(),
+		% Invisible to
 		pres_i = ?SETS:new(),
 		pres_available = ?DICT:new(),
 		pres_last, pres_pri,
@@ -1173,6 +1177,44 @@ handle_info({route, From, To, Packet}, StateName, StateData) ->
 				      StateData#state.jid,
 				      jlib:iq_to_xml(PrivPushIQ)),
 				send_element(StateData, PrivPushEl),
+
+				UnavailPres =
+				    {xmlelement, "presence",
+				     [{"type", "unavailable"}], []},
+				if
+				    StateData#state.pres_last =/= undefined ->
+					?SETS:fold(
+					   fun(JID, _) ->
+						   FJID = jlib:make_jid(JID),
+						   case {ejabberd_hooks:run_fold(
+							   privacy_check_packet, StateData#state.server,
+							   allow,
+							   [StateData#state.user,
+							    StateData#state.server,
+							    StateData#state.privacy_list,
+							    {StateData#state.jid, FJID, StateData#state.pres_last},
+							    out]),
+							 ejabberd_hooks:run_fold(
+							   privacy_check_packet, StateData#state.server,
+							   allow,
+							   [StateData#state.user,
+							    StateData#state.server,
+							    NewPL,
+							    {StateData#state.jid, FJID, StateData#state.pres_last},
+							    out])} of
+						       {allow, deny} ->
+							   ejabberd_router:route(StateData#state.jid, FJID, UnavailPres);
+						       {deny, allow} ->
+							   ejabberd_router:route(StateData#state.jid, FJID, StateData#state.pres_last);
+						       _ ->
+							   ok
+						   end
+					   end, ok, ?SETS:union(StateData#state.pres_f,
+								StateData#state.pres_a));
+				    true ->
+					ok
+				end,
+				
 				{false, Attrs, StateData#state{privacy_list = NewPL}}
 			end;
 		    _ ->
