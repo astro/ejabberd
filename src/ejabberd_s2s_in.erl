@@ -327,7 +327,7 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
 	    end;
 
 	_ when not TLSEnabled ->
-	    ?INFO_MSG("Denying a packet on incoming s2s link for ~s (no TLS)", [StateData#state.authdomain]),
+	    ?INFO_MSG("Denying a packet on incoming s2s link for ~s (no TLS)", [StateData#state.auth_domain]),
 	    send_text(StateData,
 		      xml:element_to_string(?SERRT_POLICY_VIOLATION(
 					       "en", "Usage of STARTTLS required")) ++
