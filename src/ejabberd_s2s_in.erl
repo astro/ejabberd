@@ -208,7 +208,9 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 			       [];
 			   true ->
 			       [{xmlelement, "starttls",
-				 [{"xmlns", ?NS_TLS}], []}]
+				 [{"xmlns", ?NS_TLS}], [
+							{xmlelement, "required", [], []}
+						       ]}]
 		       end,
 	    send_element(StateData,
 			 {xmlelement, "stream:features", [],
@@ -323,6 +325,12 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
 				  [{xmlelement, "invalid-mechanism", [], []}]}),
 		    {stop, normal, StateData}
 	    end;
+
+	_ when not TLSEnabled ->
+	    send_text(StateData,
+		      xml:element_to_string(?SERRT_POLICY_VIOLATION(
+					       "en", "Usage of STARTTLS required")) ++
+		      ?STREAM_TRAILER);
 	_ ->
 	    stream_established({xmlstreamelement, El}, StateData)
     end;
