@@ -66,7 +66,7 @@
 		tls_enabled = false,
 		tls_options = [],
 		authenticated = false,
-		db_enabled = false,
+		db_enabled = true,
 		try_auth = true,
 		myname, server, queue,
 		delay_to_retry = undefined_delay,
@@ -282,13 +282,7 @@ wait_for_stream({xmlstreamstart, _Name, Attrs}, StateData) ->
 	  xml:get_attr_s("xmlns:db", Attrs),
 	  xml:get_attr_s("version", Attrs) == "1.0"} of
 	{"jabber:server", "jabber:server:dialback", false} ->
-	    send_text(StateData,
-		      xml:element_to_string(?SERRT_POLICY_VIOLATION(
-					       "en", "Usage of XMPP 1.0 and STARTTLS required")) ++
-		      ?STREAM_TRAILER),
-	    ?INFO_MSG("Closing s2s connection: ~s -> ~s (no XMPP 1.0)",
-		      [StateData#state.myname, StateData#state.server]),
-	    {stop, normal, StateData};
+	    send_db_request(StateData);
 	{"jabber:server", "jabber:server:dialback", true} when
 	StateData#state.use_v10 ->
 	    {next_state, wait_for_features, StateData, ?FSMTIMEOUT};
