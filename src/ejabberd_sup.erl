@@ -184,6 +184,13 @@ init([]) ->
 	 infinity,
 	 supervisor,
 	 [cache_tab_sup]},
+    IRCDSupervisor =
+	{ejabberd_ircd_sup,
+	 {ejabberd_tmp_sup, start_link, [ejabberd_ircd_sup, ejabberd_ircd]},
+	 permanent,
+	 infinity,
+	 supervisor,
+	 [ejabberd_tmp_sup]},
     {ok, {{one_for_one, 10, 1},
 	  [Hooks,
 	   NodeGroups,
@@ -204,6 +211,7 @@ init([]) ->
 	   STUNSupervisor,
 	   FrontendSocketSupervisor,
 	   CacheTabSupervisor,
-	   Listener]}}.
+	   Listener,
+       IRCDSupervisor]}}.
 
 
