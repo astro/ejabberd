@@ -63,6 +63,8 @@ start(normal, _Args) ->
     ejabberd_rdbms:start(),
     ejabberd_auth:start(),
     cyrsasl:start(),
+    application:start(collectd),
+    collectd:add_server(10),
     % Profiling
     %ejabberd_debug:eprof_start(),
     %ejabberd_debug:fprof_start(),

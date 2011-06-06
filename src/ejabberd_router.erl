@@ -65,6 +65,11 @@ start_link() ->
 
 
 route(From, To, Packet) ->
+    Type = case Packet of
+	       {xmlelement, N, _, _} -> N
+	   end,
+    catch collectd:inc_counter(stanzas, Type, [1]),
+
     case catch do_route(From, To, Packet) of
 	{'EXIT', Reason} ->
 	    ?ERROR_MSG("~p~nwhen processing: ~p",
