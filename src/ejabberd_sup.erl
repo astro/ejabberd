@@ -84,13 +84,6 @@ init([]) ->
 	 brutal_kill,
 	 worker,
 	 [ejabberd_local]},
-    Captcha =
-	{ejabberd_captcha,
-	 {ejabberd_captcha, start_link, []},
-	 permanent,
-	 brutal_kill,
-	 worker,
-	 [ejabberd_captcha]},
     Listener =
 	{ejabberd_listener,
 	 {ejabberd_listener, start_link, []},
@@ -199,7 +192,6 @@ init([]) ->
 	   SM,
 	   S2S,
 	   Local,
-	   Captcha,
 	   ReceiverSupervisor,
 	   C2SSupervisor,
 	   S2SInSupervisor,
@@ -208,10 +200,10 @@ init([]) ->
 	   HTTPSupervisor,
 	   HTTPPollSupervisor,
 	   IQSupervisor,
-	   STUNSupervisor,
 	   FrontendSocketSupervisor,
 	   CacheTabSupervisor,
 	   Listener,
+	   STUNSupervisor,
        IRCDSupervisor]}}.
 
 
