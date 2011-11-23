@@ -250,8 +250,9 @@ and for example it doesn't read the file ejabberdctl.cfg.
 On a *nix system, if you want ejabberd to be started as daemon at boot time,
 copy \term{ejabberd.init} from the 'bin' directory to something like \term{/etc/init.d/ejabberd}
 (depending on your distribution).
-Create a system user called \term{ejabberd};
-it will be used by the script to start the server.
+Create a system user called \term{ejabberd},
+give it write access to the directories \term{database/} and \term{logs/}, and set that as home;
+the script will start the server with that user.
 Then you can call \term{/etc/inid.d/ejabberd start} as root to start the server.
 
 If \term{ejabberd} doesn't start correctly in Windows,
@@ -584,8 +585,8 @@ ejabberdctl register admin1 example.org FgT5bk3
   \end{enumerate}
 \item Edit the \ejabberd{} configuration file to give administration rights to the XMPP account you created:
 \begin{verbatim}
-{acl, admins, {user, "admin1", "example.org"}}.
-{access, configure, [{allow, admins}]}.
+{acl, admin, {user, "admin1", "example.org"}}.
+{access, configure, [{allow, admin}]}.
 \end{verbatim}
   You can grant administrative privileges to many XMPP accounts,
   and also to accounts in other XMPP servers.
@@ -1215,11 +1216,39 @@ The following authentication methods are supported by \ejabberd{}:
 
 Account creation is only supported by internal, external and odbc methods.
 
+The option \option{resource\_conflict} defines the action when a client attempts to
+login to an account with a resource that is already connected.
+The option syntax is:
+\esyntax{\{resource\_conflict, setresource|closenew|closeold\}.}
+The possible values match exactly the three possibilities described in
+\footahref{http://tools.ietf.org/html/rfc6120\#section-7.7.2.2}{XMPP Core: section 7.7.2.2}.
+The default value is \term{closeold}.
+If the client uses old Jabber Non-SASL authentication (\xepref{0078}),
+then this option is not respected, and the action performed is \term{closeold}.
+
 \makesubsubsection{internalauth}{Internal}
 \ind{internal authentication}\ind{Mnesia}
 
 \ejabberd{} uses its internal Mnesia database as the default authentication method.
 The value \term{internal} will enable the internal authentication method.
+
+The option \term{\{auth\_password\_format, plain|scram\}}
+defines in what format the users passwords are stored:
+\begin{description}
+    \titem{plain}
+    The password is stored as plain text in the database.
+    This is risky because the passwords can be read if your database gets compromised.
+    This is the default value.
+    This format allows clients to authenticate using:
+    the old Jabber Non-SASL (\xepref{0078}), \term{SASL PLAIN},
+    \term{SASL DIGEST-MD5}, and \term{SASL SCRAM-SHA-1}.
+
+    \titem{scram}
+    The password is not stored, only some information that allows to verify the hash provided by the client.
+    It is impossible to obtain the original plain password from the stored information;
+    for this reason, when this value is configured it cannot be changed to \term{plain} anymore.
+    This format allows clients to authenticate using: \term{SASL PLAIN} and \term{SASL SCRAM-SHA-1}.
+\end{description}
 
 Examples:
 \begin{itemize}
@@ -1229,9 +1258,10 @@ Examples:
 {host_config, "example.org", [{auth_method, [internal]}]}.
 {host_config, "example.net", [{auth_method, [ldap]}]}.
 \end{verbatim}
-\item To use internal authentication on all virtual hosts:
+\item To use internal authentication with hashed passwords on all virtual hosts:
 \begin{verbatim}
 {auth_method, internal}.
+{auth_password_format, scram}.
 \end{verbatim}
 \end{itemize}
 
@@ -1457,10 +1487,10 @@ declarations of ACLs in the configuration file have the following syntax:
 {acl, tests, {user_regexp, "^test[0-9]*$"}}.
 \end{verbatim}
 %$
-\titem{\{user\_regexp, UserRegexp, Server\}} Matches any user with a name
+\titem{\{user\_regexp, Regexp, Server\}} Matches any user with a name
   that matches \term{Regexp} at server \term{Server}. Example:
 \begin{verbatim}
-{acl, tests, {user_Userregexp, "^test", "example.org"}}.
+{acl, tests, {user_regexp, "^test", "example.org"}}.
 \end{verbatim}
 \titem{\{server\_regexp, Regexp\}} Matches any JID from the server that
   matches \term{Regexp}. Example:
@@ -2254,6 +2284,16 @@ This option specifies whether to verify LDAP server certificate or not when TLS 
 When \term{hard} is enabled \ejabberd{} doesn't proceed if a certificate is invalid.
 When \term{soft} is enabled \ejabberd{} proceeds even if check fails.
 The default is \term{false} which means no checks are performed.
+\titem{\{ldap\_tls\_cacertfile, Path\}} \ind{options!ldap\_tls\_cacertfile}
+Path to file containing PEM encoded CA certificates. This option is needed
+(and required) when TLS verification is enabled.
+\titem{\{ldap\_tls\_depth, Number\}} \ind{options!ldap\_tls\_depth}
+Specifies the maximum verification depth when TLS verification is enabled,
+i.e. how far in a chain of certificates the verification process can proceed
+before the verification is considered to fail.
+Peer certificate = 0, CA certificate = 1, higher level CA certificate = 2, etc.
+The value 2 thus means that a chain can at most contain peer cert,
+CA cert, next CA cert, and an additional CA cert. The default value is 1.
 \titem{\{ldap\_port, Number\}} \ind{options!ldap\_port}Port to connect to your LDAP server.
 The default port is~389 if encryption is disabled; and 636 if encryption is enabled.
 If you configure a value, it is stored in \ejabberd{}'s database.
@@ -2263,6 +2303,7 @@ the value previously stored in the database will be used instead of the default 
   is~\term{""} which means `anonymous connection'.
 \titem{\{ldap\_password, Password\}} \ind{options!ldap\_password}Bind password. The default
   value is \term{""}.
+\titem{\{ldap\_deref\_aliases, never|always|finding|searching\}} \ind{options!ldap\_deref\_aliases} Whether or not to dereference aliases. The default is \term{never}.
 \end{description}
 
 Example:
@@ -2541,7 +2582,7 @@ The following table lists all modules included in \ejabberd{}.
     \hline \ahrefloc{modoffline}{\modoffline{}} & Offline message storage (\xepref{0160}) &  \\
     \hline \ahrefloc{modoffline}{\modofflineodbc{}} & Offline message storage (\xepref{0160}) & supported DB (*) \\
     \hline \ahrefloc{modping}{\modping{}} & XMPP Ping and periodic keepalives (\xepref{0199}) &  \\
-    \hline \ahrefloc{modprescounter}{\modprivacy{}} & Detect presence subscription flood &  \\
+    \hline \ahrefloc{modprescounter}{\modprescounter{}} & Detect presence subscription flood &  \\
     \hline \ahrefloc{modprivacy}{\modprivacy{}} & Blocking Communication (\xepref{0016}) &  \\
     \hline \ahrefloc{modprivacy}{\modprivacyodbc{}} & Blocking Communication (\xepref{0016}) & supported DB (*) \\
     \hline \ahrefloc{modprivate}{\modprivate{}} & Private XML Storage (\xepref{0049}) &  \\
@@ -2737,7 +2778,7 @@ Examples:
 \begin{itemize}
 \item Only administrators can send announcements:
 \begin{verbatim}
-{access, announce, [{allow, admins}]}.
+{access, announce, [{allow, admin}]}.
 
 {modules,
  [
@@ -2751,9 +2792,9 @@ Examples:
 \begin{verbatim}
 {acl, direction, {user, "big_boss", "example.org"}}.
 {acl, direction, {user, "assistant", "example.org"}}.
-{acl, admins, {user, "admin", "example.org"}}.
+{acl, admin, {user, "admin", "example.org"}}.
 
-{access, announce, [{allow, admins},
+{access, announce, [{allow, admin},
                     {allow, direction}]}.
 
 {modules,
@@ -3224,6 +3265,7 @@ Module options:
   \begin{description}
   \titem{\{allow\_change\_subj, true|false\}} Allow occupants to change the subject.
   \titem{\{allow\_private\_messages, true|false\}} Occupants can send private messages to other occupants.
+  \titem{\{allow\_private\_messages\_from\_visitors, anyone|moderators|nobody\}} Visitors can send private messages to other occupants.
   \titem{\{allow\_query\_users, true|false\}} Occupants can send IQ queries to other occupants.
   \titem{\{allow\_user\_invites, false|true\}} Allow occupants to send invitations.
   \titem{\{allow\_visitor\_nickchange, true|false\}} Allow visitors to
@@ -3468,10 +3510,10 @@ Examples:
   be stored in /var/www/muclogs, and the local time will be used. Finally, the
   top link will be the default \verb|<a href="/">Home</a>|.
 \begin{verbatim}
-{acl, admins, {user, "admin1", "example.org"}}.
-{acl, admins, {user, "admin2", "example.net"}}.
+{acl, admin, {user, "admin1", "example.org"}}.
+{acl, admin, {user, "admin2", "example.net"}}.
 
-{access, muc_log, [{allow, admins},
+{access, muc_log, [{allow, admin},
                    {deny, all}]}.
 
 {modules,
@@ -3951,6 +3993,8 @@ Options:
 
 This example configuration shows how to enable the module and the web handler:
 \begin{verbatim}
+{hosts, ["localhost", "example.org", "example.com"]}.
+
 {listen, [
   ...
   {5281, ejabberd_http, [
@@ -3969,7 +4013,8 @@ This example configuration shows how to enable the module and the web handler:
  ]}.
 \end{verbatim}
 
-The users can visit this page: https://localhost:5281/register/
+For example, the users of the host \term{example.org} can visit the page:
+\ns{https://example.org:5281/register/}
 It is important to include the last / character in the URL,
 otherwise the subpages URL will be incorrect.
 
@@ -4645,8 +4690,9 @@ The \modvcardldap{} module has
 its own optional parameters. The first group of parameters has the same
 meaning as the top-level LDAP parameters to set the authentication method:
 \option{ldap\_servers}, \option{ldap\_port}, \option{ldap\_rootdn},
-\option{ldap\_password}, \option{ldap\_base}, \option{ldap\_uids}, and
-\option{ldap\_filter}. See section~\ref{ldapauth} for detailed information
+\option{ldap\_password}, \option{ldap\_base}, \option{ldap\_uids},
+\option{ldap\_deref\_aliases} and \option{ldap\_filter}.
+See section~\ref{ldapauth} for detailed information
 about these options. If one of these options is not set, \ejabberd{} will look
 for the top-level option with the same name.
 
@@ -5219,11 +5265,11 @@ Example configurations:
   administer the virtual host \jid{example.com}.
   The account `\jid{reviewer@example.com}' can browse that vhost in read-only mode.
 \begin{verbatim}
-{acl, admins, {user, "admin", "example.net"}}.
-{host_config, "example.com", [{acl, admins, {user, "admin", "example.com"}}]}.
+{acl, admin, {user, "admin", "example.net"}}.
+{host_config, "example.com", [{acl, admin, {user, "admin", "example.com"}}]}.
 {host_config, "example.com", [{acl, viewers, {user, "reviewer", "example.com"}}]}.
 
-{access, configure, [{allow, admins}]}.
+{access, configure, [{allow, admin}]}.
 {access, webadmin_view, [{allow, viewers}]}.
 
 {hosts, ["example.org"]}.
@@ -5639,7 +5685,8 @@ domain.
 \makesection{servicelb}{Service Load-Balancing}
 \ind{component load-balancing}
 
-\makesubsection{componentlb}{Components Load-Balancing}
+% This section never had content, should it?
+% \makesubsection{componentlb}{Components Load-Balancing}
 
 \makesubsection{domainlb}{Domain Load-Balancing Algorithm}
 \ind{options!domain\_balancing}

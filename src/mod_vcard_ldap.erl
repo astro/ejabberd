@@ -74,6 +74,7 @@
 		search_fields,
 		search_reported,
 		search_reported_attrs,
+                deref_aliases,
 		matches
 	       }).
 
@@ -287,9 +288,11 @@ find_ldap_user(User, State) ->
     VCardAttrs = State#state.vcard_map_attrs,
     case eldap_filter:parse(RFC2254_Filter, [{"%u", User}]) of
 	{ok, EldapFilter} ->
-	    case eldap_pool:search(Eldap_ID, [{base, Base},
-					 {filter, EldapFilter},
-					 {attributes, VCardAttrs}]) of
+	    case eldap_pool:search(Eldap_ID,
+                                   [{base, Base},
+                                    {filter, EldapFilter},
+                                    {deref_aliases, State#state.deref_aliases},
+                                    {attributes, VCardAttrs}]) of
 		#eldap_search_result{entries = [E | _]} ->
 		    E;
 		_ ->
@@ -572,10 +575,12 @@ search(State, Data) ->
     Limit = State#state.matches,
     ReportedAttrs = State#state.search_reported_attrs,
     Filter = eldap:'and'([SearchFilter, eldap_utils:make_filter(Data, UIDs)]),
-    case eldap_pool:search(Eldap_ID, [{base, Base},
-				 {filter, Filter},
-				 {limit, Limit},
-				 {attributes, ReportedAttrs}]) of
+    case eldap_pool:search(Eldap_ID,
+                           [{base, Base},
+                            {filter, Filter},
+                            {limit, Limit},
+                            {deref_aliases, State#state.deref_aliases},
+                            {attributes, ReportedAttrs}]) of
 	#eldap_search_result{entries = E} ->
 	    search_items(E, State);
 	_ ->
@@ -691,6 +696,17 @@ parse_options(Host, Opts) ->
 			    ejabberd_config:get_local_option({ldap_tls_verify, Host});
 			Verify -> Verify
 		    end,
+    LDAPTLSCAFile = case gen_mod:get_opt(ldap_tls_cacertfile, Opts, undefined) of
+                        undefined ->
+                            ejabberd_config:get_local_option({ldap_tls_cacertfile, Host});
+                        CAFile -> CAFile
+                    end,
+    LDAPTLSDepth = case gen_mod:get_opt(ldap_tls_depth, Opts, undefined) of
+                       undefined ->
+                           ejabberd_config:get_local_option({ldap_tls_depth, Host});
+                       Depth ->
+                           Depth
+                   end,
     LDAPPortTemp = case gen_mod:get_opt(ldap_port, Opts, undefined) of
 		       undefined ->
 			   ejabberd_config:get_local_option({ldap_port, Host});
@@ -740,10 +756,14 @@ parse_options(Host, Opts) ->
 			 case ejabberd_config:get_local_option({ldap_filter, Host}) of
 			     undefined -> SubFilter;
 			     "" -> SubFilter;
-			     F -> "(&" ++ SubFilter ++ F ++ ")"
+			     F ->
+                                 eldap_utils:check_filter(F),
+                                 "(&" ++ SubFilter ++ F ++ ")"
 			 end;
 		     "" -> SubFilter;
-		     F -> "(&" ++ SubFilter ++ F ++ ")"
+		     F ->
+                         eldap_utils:check_filter(F),
+                         "(&" ++ SubFilter ++ F ++ ")"
 		 end,
     {ok, SearchFilter} = eldap_filter:parse(
 			   eldap_filter:do_sub(UserFilter, [{"%u","*"}])),
@@ -764,6 +784,15 @@ parse_options(Host, Opts) ->
 				  _ -> []
 			      end
 		      end, SearchReported) ++ UIDAttrs),
+    DerefAliases = case gen_mod:get_opt(deref_aliases, Opts, undefined) of
+                       undefined ->
+                           case ejabberd_config:get_local_option(
+                                  {deref_aliases, Host}) of
+                               undefined -> never;
+                               D -> D
+                           end;
+                       D -> D
+                   end,
     #state{serverhost = Host,
 	   myhost = MyHost,
 	   eldap_id = Eldap_ID,
@@ -772,7 +801,9 @@ parse_options(Host, Opts) ->
 	   backups = LDAPBackups,
 	   port = LDAPPort,
 	   tls_options = [{encrypt, LDAPEncrypt},
-			  {tls_verify, LDAPTLSVerify}],
+			  {tls_verify, LDAPTLSVerify},
+                          {tls_cacertfile, LDAPTLSCAFile},
+                          {tls_depth, LDAPTLSDepth}],
 	   dn = RootDN,
 	   base = LDAPBase,
 	   password = Password,
@@ -784,5 +815,6 @@ parse_options(Host, Opts) ->
 	   search_fields = SearchFields,
 	   search_reported = SearchReported,
 	   search_reported_attrs = SearchReportedAttrs,
+           deref_aliases = DerefAliases,
 	   matches = Matches
 	  }.

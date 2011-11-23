@@ -2,7 +2,7 @@
 
 {application, ejabberd,
  [{description, "ejabberd"},
-  {vsn, "2.1.7"},
+  {vsn, "2.1.x"},
   {modules, [acl,
 	     adhoc,
 	     configure,
@@ -10,6 +10,7 @@
 	     cyrsasl,
 	     cyrsasl_digest,
 	     cyrsasl_plain,
+	     cyrsasl_scram,
 	     ejabberd_admin,
 	     ejabberd_app,
 	     ejabberd_auth_anonymous,

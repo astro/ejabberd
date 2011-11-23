@@ -1877,12 +1877,19 @@ publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload) ->
 	    NodeId = TNode#pubsub_node.id,
 	    Type = TNode#pubsub_node.type,
 	    Options = TNode#pubsub_node.options,
-	    BroadcastPayload = case Broadcast of
-		default -> Payload;
-		broadcast -> Payload;
-		PluginPayload -> PluginPayload
-	    end,
-	    broadcast_publish_item(Host, Node, NodeId, Type, Options, Removed, ItemId, jlib:jid_tolower(Publisher), BroadcastPayload),
+	    case get_option(Options, deliver_notifications) of
+			true ->
+				BroadcastPayload = case Broadcast of
+					default -> Payload;
+					broadcast -> Payload;
+					PluginPayload -> PluginPayload
+				end,
+				broadcast_publish_item(Host, Node, NodeId, Type, Options,
+					Removed, ItemId, jlib:jid_tolower(Publisher),
+					BroadcastPayload);
+			false ->
+				ok
+		end,
 	    set_cached_item(Host, NodeId, ItemId, Publisher, Payload),
 	    case Result of
 		default -> {result, Reply};
@@ -1914,8 +1921,10 @@ publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload) ->
 	    case lists:member("auto-create", features(Type)) of
 		true ->
 		    case create_node(Host, ServerHost, Node, Publisher, Type) of
-			{result, _} ->
-			    publish_item(Host, ServerHost, Node, Publisher, ItemId, Payload);
+			{result, [{xmlelement, "pubsub", [{"xmlns", ?NS_PUBSUB}],
+			  [{xmlelement, "create", [{"node", NewNode}], []}]}]} ->
+			    publish_item(Host, ServerHost,  list_to_binary(NewNode),
+				    Publisher, ItemId, Payload);
 			_ ->
 			    {error, ?ERR_ITEM_NOT_FOUND}
 		    end;

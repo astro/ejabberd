@@ -163,7 +163,15 @@ roster_version(LServer ,LUser) ->
 		true ->
 			case odbc_queries:get_roster_version(ejabberd_odbc:escape(LServer), ejabberd_odbc:escape(LUser)) of
 				{selected, ["version"], [{Version}]} -> Version;
-				{selected, ["version"], []} -> not_found
+				{selected, ["version"], []} -> 
+				%% If for some reason we don't had it on DB. Create a version Id and store it.
+				%% (we did the same on process_iq_get, that is called when client get roster,
+				%%  not sure why it can still not be on DB at this point)
+				RosterVersion = sha:sha(term_to_binary(now())),
+				{atomic, {updated,1}} = odbc_queries:sql_transaction(LServer, fun() ->
+				    odbc_queries:set_roster_version(ejabberd_odbc:escape(LUser), RosterVersion)
+				end),
+				RosterVersion
 			end;
 		false ->
 			roster_hash(ejabberd_hooks:run_fold(roster_get, LServer, [], [US]))
@@ -249,6 +257,11 @@ get_roster(LUser, LServer) ->
 			    _ ->
 				[]
 			end,
+            GroupsDict =
+                lists:foldl(
+                  fun({J, G}, Acc) ->
+                          dict:append(J, G, Acc)
+                  end, dict:new(), JIDGroups),
 	    RItems = lists:flatmap(
 		       fun(I) ->
 			       case raw_to_record(LServer, I) of
@@ -257,12 +270,11 @@ get_roster(LUser, LServer) ->
 				       [];
 				   R ->
 				       SJID = jlib:jid_to_string(R#roster.jid),
-				       Groups = lists:flatmap(
-						  fun({S, G}) when S == SJID ->
-							  [G];
-						     (_) ->
-							  []
-						  end, JIDGroups),
+				       Groups =
+                                           case dict:find(SJID, GroupsDict) of
+                                               {ok, Gs} -> Gs;
+                                               error -> []
+                                           end,
 				       [R#roster{groups = Groups}]
 			       end
 		       end, Items),

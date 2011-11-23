@@ -50,6 +50,7 @@
 	 remove_user/2,
 	 remove_user/3,
 	 plain_password_required/1,
+	 store_type/1,
 	 entropy/1
 	]).
 
@@ -69,11 +70,27 @@ start() ->
 		end, auth_modules(Host))
       end, ?MYHOSTS).
 
+%% This is only executed by ejabberd_c2s for non-SASL auth client
 plain_password_required(Server) ->
     lists:any(
       fun(M) ->
 	      M:plain_password_required()
       end, auth_modules(Server)).
+
+store_type(Server) ->
+    lists:foldl(
+      fun(_, external) ->
+	      external;
+	  (M, scram) ->
+	      case M:store_type() of
+		  external ->
+		      external;
+		  _Else ->
+		      scram
+		  end;
+	  (M, plain) ->
+	      M:store_type()
+      end, plain, auth_modules(Server)).
 
 %% @doc Check if the user and password can login in server.
 %% @spec (User::string(), Server::string(), Password::string()) ->
@@ -232,8 +249,10 @@ get_password_s(User, Server) ->
     case get_password(User, Server) of
 	false ->
 	    "";
-	Password ->
-	    Password
+	Password when is_list(Password) ->
+	    Password;
+	_ ->
+	    ""
     end.
 
 %% @doc Get the password of the user and the auth module.
@@ -287,19 +306,16 @@ is_user_exists_in_other_modules_loop([AuthModule|AuthModules], User, Server) ->
     end.
 
 
-%% @spec (User, Server) -> ok | error | {error, not_allowed}
+%% @spec (User, Server) -> ok
 %% @doc Remove user.
 %% Note: it may return ok even if there was some problem removing the user.
 remove_user(User, Server) ->
-    R = lists:foreach(
+    lists:foreach(
       fun(M) ->
 	      M:remove_user(User, Server)
       end, auth_modules(Server)),
-    case R of
-		ok -> ejabberd_hooks:run(remove_user, jlib:nameprep(Server), [User, Server]);
-		_ -> none
-    end,
-    R.
+    ejabberd_hooks:run(remove_user, jlib:nameprep(Server), [User, Server]),
+    ok.
 
 %% @spec (User, Server, Password) -> ok | not_exists | not_allowed | bad_request | error
 %% @doc Try to remove user if the provided password is correct.

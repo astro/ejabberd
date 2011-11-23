@@ -54,6 +54,7 @@
 	 is_user_exists/2,
 	 remove_user/2,
 	 remove_user/3,
+	 store_type/0,
 	 plain_password_required/0
 	]).
 
@@ -74,6 +75,7 @@
 		ufilter,
 		sfilter,
 		lfilter, %% Local filter (performed by ejabberd, not LDAP)
+                deref_aliases,
 		dn_filter,
 		dn_filter_attrs
 	       }).
@@ -136,6 +138,9 @@ init(Host) ->
 
 plain_password_required() ->
     true.
+
+store_type() ->
+	external.
 
 check_password(User, Server, Password) ->
     %% In LDAP spec: empty password means anonymous authentication.
@@ -226,10 +231,12 @@ get_vh_registered_users_ldap(Server) ->
     ResAttrs = result_attrs(State),
     case eldap_filter:parse(State#state.sfilter) of
 		{ok, EldapFilter} ->
-		    case eldap_pool:search(Eldap_ID, [{base, State#state.base},
-						 {filter, EldapFilter},
-						 {timeout, ?LDAP_SEARCH_TIMEOUT},
-						 {attributes, ResAttrs}]) of
+		    case eldap_pool:search(Eldap_ID,
+                                           [{base, State#state.base},
+                                            {filter, EldapFilter},
+                                            {timeout, ?LDAP_SEARCH_TIMEOUT},
+                                            {deref_aliases, State#state.deref_aliases},
+                                            {attributes, ResAttrs}]) of
 			#eldap_search_result{entries = Entries} ->
 			    lists:flatmap(
 			      fun(#eldap_entry{attributes = Attrs,
@@ -281,6 +288,7 @@ find_user_dn(User, State) ->
 	    case eldap_pool:search(State#state.eldap_id,
 				   [{base, State#state.base},
 				    {filter, Filter},
+                                    {deref_aliases, State#state.deref_aliases},
 				    {attributes, ResAttrs}]) of
 		#eldap_search_result{entries = [#eldap_entry{attributes = Attrs,
 							     object_name = DN} | _]} ->
@@ -318,10 +326,11 @@ is_valid_dn(DN, Attrs, State) ->
 		  end ++ [{"%d", State#state.host}, {"%D", DN}],
     case eldap_filter:parse(State#state.dn_filter, SubstValues) of
 	{ok, EldapFilter} ->
-	    case eldap_pool:search(State#state.eldap_id, [
-						     {base, State#state.base},
-						     {filter, EldapFilter},
-						     {attributes, ["dn"]}]) of
+	    case eldap_pool:search(State#state.eldap_id,
+                                   [{base, State#state.base},
+                                    {filter, EldapFilter},
+                                    {deref_aliases, State#state.deref_aliases},
+                                    {attributes, ["dn"]}]) of
 		#eldap_search_result{entries = [_|_]} ->
 		    DN;
 		_ ->
@@ -374,6 +383,8 @@ parse_options(Host) ->
 		   end,
     LDAPEncrypt = ejabberd_config:get_local_option({ldap_encrypt, Host}),
     LDAPTLSVerify = ejabberd_config:get_local_option({ldap_tls_verify, Host}),
+    LDAPTLSCAFile = ejabberd_config:get_local_option({ldap_tls_cacertfile, Host}),
+    LDAPTLSDepth = ejabberd_config:get_local_option({ldap_tls_depth, Host}),
     LDAPPort = case ejabberd_config:get_local_option({ldap_port, Host}) of
 		   undefined -> case LDAPEncrypt of
 				    tls -> ?LDAPS_PORT;
@@ -398,7 +409,9 @@ parse_options(Host) ->
     UserFilter = case ejabberd_config:get_local_option({ldap_filter, Host}) of
 		     undefined -> SubFilter;
 		     "" -> SubFilter;
-		     F -> "(&" ++ SubFilter ++ F ++ ")"
+		     F ->
+                         eldap_utils:check_filter(F),
+                         "(&" ++ SubFilter ++ F ++ ")"
 		 end,
     SearchFilter = eldap_filter:do_sub(UserFilter, [{"%u", "*"}]),
     LDAPBase = ejabberd_config:get_local_option({ldap_base, Host}),
@@ -411,7 +424,13 @@ parse_options(Host) ->
 	    {DNF, DNFA} ->
 		{DNF, DNFA}
 	end,
-	LocalFilter = ejabberd_config:get_local_option({ldap_local_filter, Host}),
+    eldap_utils:check_filter(DNFilter),
+    LocalFilter = ejabberd_config:get_local_option({ldap_local_filter, Host}),
+    DerefAliases = case ejabberd_config:get_local_option(
+                          {ldap_deref_aliases, Host}) of
+                       undefined -> never;
+                       Val -> Val
+                   end,
     #state{host = Host,
 	   eldap_id = Eldap_ID,
 	   bind_eldap_id = Bind_Eldap_ID,
@@ -419,7 +438,9 @@ parse_options(Host) ->
 	   backups = LDAPBackups,
 	   port = LDAPPort,
 	   tls_options = [{encrypt, LDAPEncrypt},
-			  {tls_verify, LDAPTLSVerify}],
+			  {tls_verify, LDAPTLSVerify},
+                          {tls_cacertfile, LDAPTLSCAFile},
+                          {tls_depth, LDAPTLSDepth}],
 	   dn = RootDN,
 	   password = Password,
 	   base = LDAPBase,
@@ -427,6 +448,7 @@ parse_options(Host) ->
 	   ufilter = UserFilter,
 	   sfilter = SearchFilter,
 	   lfilter = LocalFilter,
+           deref_aliases = DerefAliases,
 	   dn_filter = DNFilter,
 	   dn_filter_attrs = DNFilterAttrs
 	  }.

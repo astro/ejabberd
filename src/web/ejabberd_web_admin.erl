@@ -113,17 +113,17 @@ get_menu_items(Host, cluster, Lang, JID) ->
 		{Base++URI++"/", Name}
 	end,
 	Items
-    );
-get_menu_items(Host, Node, Lang, JID) ->
-    {Base, _, Items} = make_host_node_menu(Host, Node, Lang, JID),
-    lists:map(
-	fun({URI, Name}) ->
-		{Base++URI++"/", Name};
-	   ({URI, Name, _SubMenu}) ->
-		{Base++URI++"/", Name}
-	end,
-	Items
     ).
+%% get_menu_items(Host, Node, Lang, JID) ->
+%%     {Base, _, Items} = make_host_node_menu(Host, Node, Lang, JID),
+%%     lists:map(
+%% 	fun({URI, Name}) ->
+%% 		{Base++URI++"/", Name};
+%% 	   ({URI, Name, _SubMenu}) ->
+%% 		{Base++URI++"/", Name}
+%% 	end,
+%% 	Items
+%%     ).
 
 is_allowed_path(BasePath, {Path, _}, JID) ->
     is_allowed_path(BasePath ++ [Path], JID);
@@ -1648,7 +1648,10 @@ su_to_list({Server, User}) ->
 
 get_stats(global, Lang) ->
     OnlineUsers = mnesia:table_info(session, size),
-    RegisteredUsers = mnesia:table_info(passwd, size),
+    RegisteredUsers = lists:foldl(
+	fun(Host, Total) ->
+	    ejabberd_auth:get_vh_registered_users_number(Host) + Total
+	end, 0, ejabberd_config:get_global_option(hosts)),
     S2SConns = ejabberd_s2s:dirty_get_connections(),
     S2SConnections = length(S2SConns),
     S2SServers = length(lists:usort([element(2, C) || C <- S2SConns])),
@@ -2020,7 +2023,6 @@ get_node(global, Node, ["db"], Query, Lang) ->
 get_node(global, Node, ["backup"], Query, Lang) ->
     HomeDirRaw = case {os:getenv("HOME"), os:type()} of
 	{EnvHome, _} when is_list(EnvHome) -> EnvHome;
-	{false, win32} -> "C:/";
 	{false, {win32, _Osname}} -> "C:/";
 	{false, _} -> "/tmp/"
     end,

@@ -112,7 +112,7 @@ init() ->
 	ok -> ok;
 	{error, already_loaded} -> ok
     end,
-    Port = open_port({spawn, expat_erl}, [binary]),
+    Port = open_port({spawn, "expat_erl"}, [binary]),
     loop(Port).
 
 

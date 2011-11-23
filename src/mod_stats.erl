@@ -162,12 +162,12 @@ get_local_stat(_Server, [], Name) when Name == "users/all-hosts/online" ->
     end;
 
 get_local_stat(_Server, [], Name) when Name == "users/all-hosts/total" ->
-    case catch mnesia:table_info(passwd, size) of
-	{'EXIT', _Reason} ->
-	    ?STATERR("500", "Internal Server Error");
-	Users ->
-	    ?STATVAL(integer_to_list(Users), "users")
-    end;
+    NumUsers = lists:foldl(
+		 fun(Host, Total) ->
+			 ejabberd_auth:get_vh_registered_users_number(Host)
+			     + Total
+		 end, 0, ejabberd_config:get_global_option(hosts)),
+    ?STATVAL(integer_to_list(NumUsers), "users");
 
 get_local_stat(_Server, _, Name) ->
     ?STATERR("404", "Not Found").

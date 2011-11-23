@@ -112,7 +112,7 @@
 		host = null,   % Connected Host LDAP server
 		port = 389,    % The LDAP server port
 		sockmod,       % SockMod (gen_tcp|tls)
-		tls = none,    % LDAP/LDAPS (none|starttls|tls)
+		tls = none,    % LDAP/LDAPS (none|tls)
 		tls_options = [],
 		fd = null,     % Socket filedescriptor.
 		rootdn = "",   % Name of the entry to bind as
@@ -323,6 +323,14 @@ parse_search_args([{timeout, Timeout}|T],A) when is_integer(Timeout) ->
     parse_search_args(T,A#eldap_search{timeout = Timeout});
 parse_search_args([{limit, Limit}|T],A) when is_integer(Limit) ->
     parse_search_args(T,A#eldap_search{limit = Limit});
+parse_search_args([{deref_aliases, never}|T],A) ->
+    parse_search_args(T,A#eldap_search{deref_aliases = neverDerefAliases});
+parse_search_args([{deref_aliases, searching}|T],A) ->
+    parse_search_args(T,A#eldap_search{deref_aliases = derefInSearching});
+parse_search_args([{deref_aliases, finding}|T],A) ->
+    parse_search_args(T,A#eldap_search{deref_aliases = derefFindingBaseObj});
+parse_search_args([{deref_aliases, always}|T],A) ->
+    parse_search_args(T,A#eldap_search{deref_aliases = derefAlways});
 parse_search_args([H|_],_) ->
     throw({error,{unknown_arg, H}});
 parse_search_args([],A) ->
@@ -424,8 +432,8 @@ get_handle(Name) when is_list(Name) -> list_to_atom("eldap_" ++ Name).
 %%----------------------------------------------------------------------
 init([]) ->
     case get_config() of
-	{ok, Hosts, Rootdn, Passwd, Opts} ->
-	    init({Hosts, Rootdn, Passwd, Opts});
+	{ok, Hosts, Port, Rootdn, Passwd, Opts} ->
+	    init({Hosts, Port, Rootdn, Passwd, Opts});
 	{error, Reason} ->
 	    {stop, Reason}
     end;
@@ -441,21 +449,34 @@ init({Hosts, Port, Rootdn, Passwd, Opts}) ->
 		       case Encrypt of
 			   tls ->
 			       ?LDAPS_PORT;
-			   starttls ->
-			       ?LDAP_PORT;
 			   _ ->
 			       ?LDAP_PORT
 		       end;
 		   PT -> PT
 	       end,
-    TLSOpts = case proplists:get_value(tls_verify, Opts) of
-		  soft ->
-		      [{verify, 1}];
-		  hard ->
-		      [{verify, 2}];
-		  _ ->
-		      [{verify, 0}]
-	      end,
+    CacertOpts = case proplists:get_value(tls_cacertfile, Opts) of
+                     [_|_] = Path -> [{cacertfile, Path}];
+                     _ -> []
+                 end,
+    DepthOpts = case proplists:get_value(tls_depth, Opts) of
+                    Depth when is_integer(Depth), Depth >= 0 ->
+                        [{depth, Depth}];
+                    _ -> []
+                end,
+    Verify = proplists:get_value(tls_verify, Opts),
+    TLSOpts = if (Verify == hard orelse Verify == soft)
+                 andalso CacertOpts == [] ->
+                      ?WARNING_MSG("TLS verification is enabled "
+                                   "but no CA certfiles configured, so "
+                                   "verification is disabled.", []),
+                      [];
+                 Verify == soft ->
+                      [{verify, 1}] ++ CacertOpts ++ DepthOpts;
+                 Verify == hard ->
+                      [{verify, 2}] ++ CacertOpts ++ DepthOpts;
+                 true ->
+                      []
+              end,
     {ok, connecting, #eldap{hosts = Hosts,
 			    port = PortTemp,
 			    rootdn = Rootdn,
@@ -687,7 +708,7 @@ gen_req({search, A}) ->
     {searchRequest,
      #'SearchRequest'{baseObject   = A#eldap_search.base,
 		      scope        = v_scope(A#eldap_search.scope),
-		      derefAliases = neverDerefAliases,
+		      derefAliases = A#eldap_search.deref_aliases,
 		      sizeLimit    = A#eldap_search.limit,
 		      timeLimit    = v_timeout(A#eldap_search.timeout),
 		      typesOnly    = v_bool(A#eldap_search.types_only),
@@ -887,14 +908,9 @@ cancel_timer(Timer) ->
 
 %%% Sanity check of received packet
 check_tag(Data) ->
-    case asn1rt_ber_bin:decode_tag(Data) of
-	{_Tag, Data1, _Rb} ->
-	    case asn1rt_ber_bin:decode_length(Data1) of
-		{{_Len,_Data2}, _Rb2} -> ok;
-		_ -> throw({error,decoded_tag_length})
-	    end;
-	_ -> throw({error,decoded_tag})
-    end.
+    {_Tag, Data1, _Rb} = asn1rt_ber_bin:decode_tag(Data),
+    {{_Len,_Data2}, _Rb2} = asn1rt_ber_bin:decode_length(Data1),
+    ok.
 
 close_and_retry(S, Timeout) ->
     catch (S#eldap.sockmod):close(S#eldap.fd),
@@ -965,18 +981,21 @@ polish([], Res, Ref) ->
 connect_bind(S) ->
     Host = next_host(S#eldap.host, S#eldap.hosts),
     ?INFO_MSG("LDAP connection on ~s:~p", [Host, S#eldap.port]),
+    Opts = if S#eldap.tls == tls ->
+                   [{packet, asn1}, {active, true}, {keepalive, true},
+                    binary | S#eldap.tls_options];
+              true ->
+                   [{packet, asn1}, {active, true}, {keepalive, true},
+                    {send_timeout, ?SEND_TIMEOUT}, binary]
+           end,
     SocketData = case S#eldap.tls of
 		     tls ->
 			 SockMod = ssl,
-			 SslOpts = [{packet, asn1}, {active, true}, {keepalive, true},
-				    binary | S#eldap.tls_options],
-			 ssl:connect(Host, S#eldap.port, SslOpts);
+			 ssl:connect(Host, S#eldap.port, Opts);
 		     %% starttls -> %% TODO: Implement STARTTLS;
 		     _ ->
 			 SockMod = gen_tcp,
-			 TcpOpts = [{packet, asn1}, {active, true}, {keepalive, true},
-				    {send_timeout, ?SEND_TIMEOUT}, binary],
-			 gen_tcp:connect(Host, S#eldap.port, TcpOpts)
+			 gen_tcp:connect(Host, S#eldap.port, Opts)
 		 end,
     case SocketData of
 	{ok, Socket} ->
@@ -994,8 +1013,11 @@ connect_bind(S) ->
 		    {ok, connecting, NewS#eldap{host = Host}}
 	    end;
 	{error, Reason} ->
-	    ?ERROR_MSG("LDAP connection failed on ~s:~p~nReason: ~p",
-		       [Host, S#eldap.port, Reason]),
+	    ?ERROR_MSG("LDAP connection failed:~n"
+                       "** Server: ~s:~p~n"
+                       "** Reason: ~p~n"
+                       "** Socket options: ~p",
+		       [Host, S#eldap.port, Reason, Opts]),
 	    NewS = close_and_retry(S),
 	    {ok, connecting, NewS#eldap{host = Host}}
     end.
