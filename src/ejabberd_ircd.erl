@@ -1048,9 +1048,14 @@ jid_to_channel(#jid{user = Room} = RoomJID,
 
 make_irc_sender(Nick, #jid{luser = Room} = RoomJID,
 		#state{jids_to_channels = JidsToChannels}) ->
+    Safe = fun(S) ->
+		   [C || C <- S,
+			 C > $\ ]
+	   end,
+    SafeNick = Safe(Nick),
     case ?DICT:find(jlib:jid_remove_resource(RoomJID), JidsToChannels) of
-	{ok, Channel} -> Nick++"!"++Nick++"@"++Channel;
-	_ -> Nick++"!"++Nick++"@"++Room
+	{ok, Channel} -> SafeNick++"!"++SafeNick++"@"++Safe(Channel);
+	_ -> SafeNick++"!"++SafeNick++"@"++Safe(Room)
     end.
 make_irc_sender(#jid{lresource = Nick} = JID, State) ->
     make_irc_sender(Nick, JID, State).
