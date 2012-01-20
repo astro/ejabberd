@@ -27,7 +27,7 @@
 -module(ejabberd_s2s_in).
 -author('alexey@process-one.net').
 
--behaviour(gen_fsm).
+-behaviour(p1_fsm).
 
 %% External exports
 -export([start/2,
@@ -44,6 +44,7 @@
 	 handle_sync_event/4,
 	 code_change/4,
 	 handle_info/3,
+	 print_state/1,
 	 terminate/3]).
 
 -include("ejabberd.hrl").
@@ -92,10 +93,12 @@
 -define(FSMOPTS, []).
 -endif.
 
+-define(FSMLIMITS, [{max_queue, 2000}]). %% if queue grows more than this, we shutdown this connection.
+
 %% Module start with or without supervisor:
 -ifdef(NO_TRANSIENT_SUPERVISORS).
--define(SUPERVISOR_START, gen_fsm:start(ejabberd_s2s_in, [SockData, Opts],
-					?FSMOPTS)).
+-define(SUPERVISOR_START, p1_fsm:start(ejabberd_s2s_in, [SockData, Opts],
+					?FSMOPTS ++ ?FSMLIMITS)).
 -else.
 -define(SUPERVISOR_START, supervisor:start_child(ejabberd_s2s_in_sup,
 						 [SockData, Opts])).
@@ -131,7 +134,7 @@ start(SockData, Opts) ->
     ?SUPERVISOR_START.
 
 start_link(SockData, Opts) ->
-    gen_fsm:start_link(ejabberd_s2s_in, [SockData, Opts], ?FSMOPTS).
+    p1_fsm:start_link(ejabberd_s2s_in, [SockData, Opts], ?FSMOPTS ++ ?FSMLIMITS).
 
 socket_type() ->
     xml_stream.
@@ -347,8 +350,9 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
 			    error ->
 				false
 			end,
+		    AllowRemoteHost = ejabberd_s2s:allow_host("", AuthDomain),
 		    if
-			AuthRes ->
+			AuthRes andalso AllowRemoteHost ->
 			    (StateData#state.sockmod):reset_stream(
 			      StateData#state.socket),
 			    send_element(StateData,
@@ -356,6 +360,12 @@ wait_for_feature_request({xmlstreamelement, El}, StateData) ->
 					  [{"xmlns", ?NS_SASL}], []}),
 			    ?DEBUG("(~w) Accepted s2s authentication for ~s",
 				      [StateData#state.socket, AuthDomain]),
+
+			      	%% acess rules are first checked against the globally defined ones, that have precedence over
+				%% domain-specific ones.. http://www.process-one.net/docs/ejabberd/guide_en.html#AccessRights
+				%% since there is allways a shaper defined globally for s2s, it doesn't matter the actual
+				%% local host, since the globall one will be used, even if this domain has a special rule
+			    change_shaper(StateData, "", jlib:make_jid("", AuthDomain, "")),
 			    {next_state, wait_for_stream,
 			     StateData#state{streamid = new_id(),
 					     authenticated = true,
@@ -584,14 +594,7 @@ handle_sync_event(get_state_infos, _From, StateName, StateData) ->
 		  catch
 		      _:_ -> {unknown,unknown}
 		  end,
-    Domains =	case StateData#state.authenticated of
-		    true -> 
-			[StateData#state.auth_domain];
-		    false ->
-			Connections = StateData#state.connections,
-			[D || {{D, _}, established} <- 
-			    dict:to_list(Connections)]
-		end,
+    Domains =	get_external_hosts(StateData),
     Infos = [
 	     {direction, in},
 	     {statename, StateName},
@@ -650,8 +653,31 @@ handle_info(_, StateName, StateData) ->
 %%----------------------------------------------------------------------
 terminate(Reason, _StateName, StateData) ->
     ?DEBUG("terminated: ~p", [Reason]),
+    case Reason of
+	    {process_limit, _} ->
+		    [ejabberd_s2s:external_host_overloaded(Host) || Host <- get_external_hosts(StateData)];
+	    _ ->
+		    ok
+    end,
     (StateData#state.sockmod):close(StateData#state.socket),
     ok.
+
+get_external_hosts(StateData) ->
+    case StateData#state.authenticated of
+	    true ->
+		[StateData#state.auth_domain];
+	    false ->
+		Connections = StateData#state.connections,
+		[D || {{D, _}, established} <- dict:to_list(Connections)]
+    end.
+
+%%----------------------------------------------------------------------
+%% Func: print_state/1
+%% Purpose: Prepare the state to be printed on error log
+%% Returns: State to print
+%%----------------------------------------------------------------------
+print_state(State) ->
+    State.
 
 %%%----------------------------------------------------------------------
 %%% Internal functions
@@ -805,11 +831,11 @@ match_labels([DL | DLabels], [PL | PLabels]) ->
 				 orelse (C == $-) orelse (C == $*)
 		   end, PL) of
 	true ->
-	    Regexp = regexp:sh_to_awk(PL),
-	    case regexp:match(DL, Regexp) of
-		{match, _, _} ->
+	    Regexp = ejabberd_regexp:sh_to_awk(PL),
+	    case ejabberd_regexp:run(DL, Regexp) of
+		match ->
 		    match_labels(DLabels, PLabels);
-		_ ->
+		nomatch ->
 		    false
 	    end;
 	false ->

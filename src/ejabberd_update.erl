@@ -44,7 +44,7 @@ update() ->
 		eval_script(
 		  LowLevelScript, [],
 		  [{ejabberd, "", filename:join(Dir, "..")}]),
-	    ?INFO_MSG("eval: ~p~n", [Eval]),
+	    ?DEBUG("eval: ~p~n", [Eval]),
 	    Eval;
 	{error, Reason} ->
 	    {error, Reason}
@@ -61,7 +61,7 @@ update(ModulesToUpdate) ->
 		eval_script(
 		  LowLevelScript, [],
 		  [{ejabberd, "", filename:join(Dir, "..")}]),
-	    ?INFO_MSG("eval: ~p~n", [Eval]),
+	    ?DEBUG("eval: ~p~n", [Eval]),
 	    Eval;
 	{error, Reason} ->
 	    {error, Reason}
@@ -128,8 +128,10 @@ get_new_version(Module) ->
 
 get_current_version(Module) ->
     Attrs = Module:module_info(attributes),
-    {value, {vsn, CurVsn}} = lists:keysearch(vsn, 1, Attrs),
-    CurVsn.
+    case lists:keysearch(vsn, 1, Attrs) of
+        {value, {vsn, CurVsn}} -> CurVsn;
+        _ -> unknown_version
+    end.
 
 %% @spec(Dir::string(), UpdatedBeams::[atom()]) -> {Script,LowLevelScript,Check}
 build_script(Dir, UpdatedBeams) ->

@@ -463,7 +463,8 @@ get_user_groups(US) ->
 	    []
     end ++ get_special_users_groups(Host).
 
-is_group_enabled(Host, Group) ->
+is_group_enabled(Host1, Group1) ->
+    {Host, Group} = split_grouphost(Host1, Group1),
     case catch mnesia:dirty_read(sr_group, {Group, Host}) of
 	[#sr_group{opts = Opts}] ->
 	    not lists:member(disabled, Opts);
@@ -488,7 +489,8 @@ get_group_opt(Host, Group, Opt, Default) ->
 get_online_users(Host) ->
     lists:usort([{U, S} || {U, S, _} <- ejabberd_sm:get_vh_session_list(Host)]).
 
-get_group_users(Host, Group) ->
+get_group_users(Host1, Group1) ->
+    {Host, Group} = split_grouphost(Host1, Group1),
     case get_group_opt(Host, Group, all_users, false) of
 	true ->
 	    ejabberd_auth:get_vh_registered_users(Host);
@@ -531,7 +533,8 @@ get_group_explicit_users(Host, Group) ->
 	    []
     end.
 
-get_group_name(Host, Group) ->
+get_group_name(Host1, Group1) ->
+    {Host, Group} = split_grouphost(Host1, Group1),
     get_group_opt(Host, Group, name, Group).
 
 %% Get list of names of groups that have @all@/@online@/etc in the memberlist
@@ -614,8 +617,8 @@ is_user_in_group(US, Group, Host) ->
 %% @spec (Host::string(), {User::string(), Server::string()}, Group::string()) -> {atomic, ok}
 add_user_to_group(Host, US, Group) ->
     {LUser, LServer} = US,
-    case regexp:match(LUser, "^@.+@$") of
-	{match,_,_} ->
+    case ejabberd_regexp:run(LUser, "^@.+@$") of
+	match ->
 	    GroupOpts = mod_shared_roster:get_group_opts(Host, Group),
 	    MoreGroupOpts =
 		case LUser of
@@ -628,7 +631,7 @@ add_user_to_group(Host, US, Group) ->
 	      GroupOpts ++ MoreGroupOpts);
 	nomatch ->
 	    %% Push this new user to members of groups where this group is displayed
-	    push_user_to_displayed(LUser, LServer, Group, both),
+	    push_user_to_displayed(LUser, LServer, Group, Host, both),
 	    %% Push members of groups that are displayed to this group
 	    push_displayed_to_user(LUser, LServer, Group, Host, both),
 	    R = #sr_user{us = US, group_host = {Group, Host}},
@@ -647,8 +650,8 @@ push_displayed_to_user(LUser, LServer, Group, Host, Subscription) ->
 remove_user_from_group(Host, US, Group) ->
     GroupHost = {Group, Host},
     {LUser, LServer} = US,
-    case regexp:match(LUser, "^@.+@$") of
-	{match,_,_} ->
+    case ejabberd_regexp:run(LUser, "^@.+@$") of
+	match ->
 	    GroupOpts = mod_shared_roster:get_group_opts(Host, Group),
 	    NewGroupOpts =
 		case LUser of
@@ -665,7 +668,7 @@ remove_user_from_group(Host, US, Group) ->
 		end,
 	    Result = mnesia:transaction(F),
 	    %% Push removal of the old user to members of groups where the group that this user was members was displayed
-	    push_user_to_displayed(LUser, LServer, Group, remove),
+	    push_user_to_displayed(LUser, LServer, Group, Host, remove),
 	    %% Push removal of members of groups that where displayed to the group which this user has left
 	    push_displayed_to_user(LUser, LServer, Group, Host, remove),
 	    Result
@@ -686,7 +689,7 @@ register_user(User, Server) ->
     %% Get list of groups where this user is member
     Groups = get_user_groups({User, Server}),
     %% Push this user to members of groups where is displayed a group which this user is member
-    [push_user_to_displayed(User, Server, Group, both) || Group <- Groups].
+    [push_user_to_displayed(User, Server, Group, Server, both) || Group <- Groups].
 
 remove_user(User, Server) ->
     push_user_to_members(User, Server, remove).
@@ -708,19 +711,19 @@ push_user_to_members(User, Server, Subscription) ->
 		end, get_group_users(LServer, Group, GroupOpts))
       end, lists:usort(SpecialGroups++UserGroups)).
 
-push_user_to_displayed(LUser, LServer, Group, Subscription) ->
-    GroupsOpts = groups_with_opts(LServer),
+push_user_to_displayed(LUser, LServer, Group, Host, Subscription) ->
+    GroupsOpts = groups_with_opts(Host),
     GroupOpts = proplists:get_value(Group, GroupsOpts, []),
     GroupName = proplists:get_value(name, GroupOpts, Group),
-    DisplayedToGroupsOpts = displayed_to_groups(Group, LServer),
-    [push_user_to_group(LUser, LServer, GroupD, GroupName, Subscription) || {GroupD, _Opts} <- DisplayedToGroupsOpts].
+    DisplayedToGroupsOpts = displayed_to_groups(Group, Host),
+    [push_user_to_group(LUser, LServer, GroupD, Host, GroupName, Subscription) || {GroupD, _Opts} <- DisplayedToGroupsOpts].
 
-push_user_to_group(LUser, LServer, Group, GroupName, Subscription) ->
+push_user_to_group(LUser, LServer, Group, Host, GroupName, Subscription) ->
     lists:foreach(
-      fun({U, S}) when (U == LUser) and (S == LServer) -> ok;
+      fun({U, S})  when (U == LUser) and (S == LServer) -> ok;
          ({U, S}) ->
 	      push_roster_item(U, S, LUser, LServer, GroupName, Subscription)
-      end, get_group_users(LServer, Group)).
+      end, get_group_users(Host, Group)).
 
 %% Get list of groups to which this group is displayed
 displayed_to_groups(GroupName, LServer) ->
@@ -816,7 +819,7 @@ user_available(New) ->
 	      fun(OG) ->
 		      ?DEBUG("user_available: pushing  ~p @ ~p grp ~p",
 			     [LUser, LServer, OG ]),
-		      push_user_to_displayed(LUser, LServer, OG, both)
+		      push_user_to_displayed(LUser, LServer, OG, LServer, both)
 	      end, OnlineGroups);
 	_ ->
 	    ok
@@ -837,7 +840,7 @@ unset_presence(LUser, LServer, Resource, Status) ->
 	      fun(OG) ->
 		      %% Push removal of the old user to members of groups
 		      %% where the group that this uwas members was displayed
-		      push_user_to_displayed(LUser, LServer, OG, remove),
+		      push_user_to_displayed(LUser, LServer, OG, LServer, remove),
 		      %% Push removal of members of groups that where
 		      %% displayed to the group which thiuser has left
 		      push_displayed_to_user(LUser, LServer, OG, LServer,remove)
@@ -967,7 +970,7 @@ shared_roster_group(Host, Group, Query, Lang) ->
 	end ++
 	[[us_to_list(Member), $\n] || Member <- Members],
     FDisplayedGroups = [[DG, $\n] || DG <- DisplayedGroups],
-    DescNL = length(element(2, regexp:split(Description, "\n"))),
+    DescNL = length(ejabberd_regexp:split(Description, "\n")),
     FGroup =
 	?XAE("table", [{"class", "withtextareas"}],
 	     [?XE("tbody",
@@ -1114,3 +1117,11 @@ get_opt(Opts, Opt, Default) ->
 
 us_to_list({User, Server}) ->
     jlib:jid_to_string({User, Server, ""}).
+
+split_grouphost(Host, Group) ->
+    case string:tokens(Group, "@") of
+	[GroupName, HostName] ->
+	    {HostName, GroupName};
+	[_] ->
+	    {Host, Group}
+    end.
