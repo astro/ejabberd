@@ -5,7 +5,7 @@
 %%% Created : 16 Nov 2002 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -290,8 +290,8 @@ accept(ListenSocket, Module, Opts) ->
 	    CallMod:start(strip_frontend(Module), gen_tcp, Socket, Opts),
 	    accept(ListenSocket, Module, Opts);
 	{error, Reason} ->
-	    ?INFO_MSG("(~w) Failed TCP accept: ~w",
-		      [ListenSocket, Reason]),
+	    ?ERROR_MSG("(~w) Failed TCP accept: ~w",
+                       [ListenSocket, Reason]),
 	    accept(ListenSocket, Module, Opts)
     end.
 

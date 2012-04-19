@@ -6,7 +6,7 @@
 %%% Created : 29 Aug 2010 by Evgeniy Khramtsov <ekhramtsov@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -380,7 +380,12 @@ do_setopts(#state{procs_num = N} = State, Opts) ->
 		shrink_size = ShrinkSize}.
 
 get_proc_num() ->
-    erlang:system_info(logical_processors).
+    case erlang:system_info(logical_processors) of
+        unknown ->
+            1;
+        Num ->
+            Num
+    end.
 
 get_proc_by_hash(Tab, Term) ->
     N = erlang:phash2(Term, get_proc_num()) + 1,

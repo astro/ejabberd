@@ -5,7 +5,7 @@
 %%% Created :  8 Dec 2004 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -40,6 +40,8 @@
 	 escape/1,
 	 escape_like/1,
 	 to_bool/1,
+         encode_term/1,
+         decode_term/1,
 	 keep_alive/1]).
 
 %% gen_fsm callbacks
@@ -168,6 +170,14 @@ to_bool("1") -> true;
 to_bool(true) -> true;
 to_bool(1) -> true;
 to_bool(_) -> false.
+
+encode_term(Term) ->
+    escape(erl_prettypr:format(erl_syntax:abstract(Term))).
+
+decode_term(Str) ->
+    {ok, Tokens, _} = erl_scan:string(Str ++ "."),
+    {ok, Term} = erl_parse:parse_term(Tokens),
+    Term.
 
 %%%----------------------------------------------------------------------
 %%% Callback functions from gen_fsm

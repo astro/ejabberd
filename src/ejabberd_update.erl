@@ -5,7 +5,7 @@
 %%% Created : 27 Jan 2006 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -69,6 +69,7 @@ update(ModulesToUpdate) ->
 
 %% OTP R14B03 and older provided release_handler_1:eval_script/3
 %% But OTP R14B04 and newer provide release_handler_1:eval_script/5
+%% Dialyzer reports a call to missing function; don't worry.
 eval_script(Script, Apps, LibDirs) ->
     case lists:member({eval_script, 5}, release_handler_1:module_info(exports)) of
 	true ->
@@ -143,6 +144,8 @@ build_script(Dir, UpdatedBeams) ->
 	  [{ejabberd, "", filename:join(Dir, "..")}]),
     case Check of
 	ok -> 
+	    %% This clause is for OTP R14B03 and older.
+	    %% Newer Dialyzer reports a never match pattern; don't worry.
 	    ?DEBUG("script: ~p~n", [Script]),
 	    ?DEBUG("low level script: ~p~n", [LowLevelScript]),
 	    ?DEBUG("check: ~p~n", [Check]);

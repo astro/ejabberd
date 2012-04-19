@@ -5,7 +5,7 @@
 %%% Created :  2 Jan 2003 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -163,7 +163,7 @@ process_local_iq(_From, _To, #iq{type = Type, lang = Lang, sub_el = SubEl} = IQ)
 				 translate:translate(
 				   Lang,
 				   "Erlang Jabber Server") ++
-				   "\nCopyright (c) 2002-2011 ProcessOne"}]},
+				   "\nCopyright (c) 2002-2012 ProcessOne"}]},
 			      {xmlelement, "BDAY", [],
 			       [{xmlcdata, "2002-11-16"}]}
 			     ]}]}
@@ -219,17 +219,17 @@ set_vcard(User, LServer, VCARD) ->
 	    end,
 
     LUser     = jlib:nodeprep(User),
-    LFN       = string:to_lower(FN),
-    LFamily   = string:to_lower(Family),
-    LGiven    = string:to_lower(Given),
-    LMiddle   = string:to_lower(Middle),
-    LNickname = string:to_lower(Nickname),
-    LBDay     = string:to_lower(BDay),
-    LCTRY     = string:to_lower(CTRY),
-    LLocality = string:to_lower(Locality),
-    LEMail    = string:to_lower(EMail),
-    LOrgName  = string:to_lower(OrgName),
-    LOrgUnit  = string:to_lower(OrgUnit),
+    LFN       = string2lower(FN),
+    LFamily   = string2lower(Family),
+    LGiven    = string2lower(Given),
+    LMiddle   = string2lower(Middle),
+    LNickname = string2lower(Nickname),
+    LBDay     = string2lower(BDay),
+    LCTRY     = string2lower(CTRY),
+    LLocality = string2lower(Locality),
+    LEMail    = string2lower(EMail),
+    LOrgName  = string2lower(OrgName),
+    LOrgUnit  = string2lower(OrgUnit),
 
     US = {LUser, LServer},
 
@@ -269,6 +269,12 @@ set_vcard(User, LServer, VCARD) ->
 		end,
 	    mnesia:transaction(F),
 	    ejabberd_hooks:run(vcard_set, LServer, [LUser, LServer, VCARD])
+    end.
+
+string2lower(String) ->
+    case stringprep:tolower(String) of
+        Lower when is_list(Lower) -> Lower;
+        error -> string:to_lower(String)
     end.
 
 -define(TLFIELD(Type, Label, Var),
@@ -437,7 +443,7 @@ iq_get_vcard(Lang) ->
       [{xmlcdata, translate:translate(
 		    Lang,
 		    "ejabberd vCard module") ++
-		    "\nCopyright (c) 2003-2011 ProcessOne"}]}].
+		    "\nCopyright (c) 2003-2012 ProcessOne"}]}].
 
 find_xdata_el({xmlelement, _Name, _Attrs, SubEls}) ->
     find_xdata_el1(SubEls).
@@ -541,7 +547,7 @@ filter_fields([], Match, _LServer) ->
     Match;
 filter_fields([{SVar, [Val]} | Ds], Match, LServer)
   when is_list(Val) and (Val /= "") ->
-    LVal = string:to_lower(Val),
+    LVal = string2lower(Val),
     NewMatch = case SVar of
                    "user" ->
 		       case gen_mod:get_module_opt(LServer, ?MODULE,
@@ -618,17 +624,17 @@ set_vcard_t(R, _) ->
     OrgUnit  = xml:get_path_s(VCARD, [{elem, "ORG"}, {elem, "ORGUNIT"}, cdata]),
 
     {LUser, _LServer} = US,
-    LFN       = string:to_lower(FN),
-    LFamily   = string:to_lower(Family),
-    LGiven    = string:to_lower(Given),
-    LMiddle   = string:to_lower(Middle),
-    LNickname = string:to_lower(Nickname),
-    LBDay     = string:to_lower(BDay),
-    LCTRY     = string:to_lower(CTRY),
-    LLocality = string:to_lower(Locality),
-    LEMail    = string:to_lower(EMail),
-    LOrgName  = string:to_lower(OrgName),
-    LOrgUnit  = string:to_lower(OrgUnit),
+    LFN       = string2lower(FN),
+    LFamily   = string2lower(Family),
+    LGiven    = string2lower(Given),
+    LMiddle   = string2lower(Middle),
+    LNickname = string2lower(Nickname),
+    LBDay     = string2lower(BDay),
+    LCTRY     = string2lower(CTRY),
+    LLocality = string2lower(Locality),
+    LEMail    = string2lower(EMail),
+    LOrgName  = string2lower(OrgName),
+    LOrgUnit  = string2lower(OrgUnit),
 
     if
 	(LUser     == error) or

@@ -7,7 +7,7 @@
 %%% Created :  5 Mar 2005 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -329,10 +329,13 @@ eldap_search(State, FilterParseArgs, AttributesList) ->
             []
     end.
 
-get_user_displayed_groups({_User, Host}) ->
+get_user_displayed_groups({User, Host}) ->
     {ok, State} = eldap_utils:get_state(Host, ?MODULE),
     GroupAttr = State#state.group_attr,
-    Entries = eldap_search(State, [State#state.rfilter], [GroupAttr]),
+    Entries = eldap_search(
+                State,
+                [eldap_filter:do_sub(State#state.rfilter, [{"%u", User}])],
+                [GroupAttr]),
     Reply = lists:flatmap(
 	      fun(#eldap_entry{attributes = Attrs}) ->
 		      case Attrs of

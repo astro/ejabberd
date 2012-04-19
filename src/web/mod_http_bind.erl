@@ -5,7 +5,7 @@
 %%% Created : Tue Feb 20 13:15:52 CET 2007
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -74,6 +74,8 @@ process([], #request{method = 'GET',
 process([], #request{method = 'OPTIONS',
                      data = []}) ->
     {200, ?OPTIONS_HEADER, []};
+process([], #request{method = 'HEAD'}) ->
+    {200, ?HEADER, []};
 process(_Path, _Request) ->
     ?DEBUG("Bad Request: ~p", [_Request]),
     {400, ?HEADER, {xmlelement, "h1", [],

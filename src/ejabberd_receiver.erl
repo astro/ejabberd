@@ -5,7 +5,7 @@
 %%% Created : 10 Nov 2003 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -84,16 +84,16 @@ change_shaper(Pid, Shaper) ->
     gen_server:cast(Pid, {change_shaper, Shaper}).
 
 reset_stream(Pid) ->
-    gen_server:call(Pid, reset_stream).
+    do_call(Pid, reset_stream).
 
 starttls(Pid, TLSSocket) ->
-    gen_server:call(Pid, {starttls, TLSSocket}).
+    do_call(Pid, {starttls, TLSSocket}).
 
 compress(Pid, ZlibSocket) ->
-    gen_server:call(Pid, {compress, ZlibSocket}).
+    do_call(Pid, {compress, ZlibSocket}).
 
 become_controller(Pid, C2SPid) ->
-    gen_server:call(Pid, {become_controller, C2SPid}).
+    do_call(Pid, {become_controller, C2SPid}).
 
 close(Pid) ->
     gen_server:cast(Pid, close).
@@ -345,3 +345,11 @@ close_stream(undefined) ->
     ok;
 close_stream(XMLStreamState) ->
     xml_stream:close(XMLStreamState).
+
+do_call(Pid, Msg) ->
+    case catch gen_server:call(Pid, Msg) of
+        {'EXIT', Why} ->
+            {error, Why};
+        Res ->
+            Res
+    end.

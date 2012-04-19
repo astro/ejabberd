@@ -5,7 +5,7 @@
 %%% Created :  5 Mar 2005 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2011   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2012   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -186,7 +186,7 @@ get_vcard_module(Server) ->
 get_rosteritem_name([], _, _) ->
     "";
 get_rosteritem_name([ModVcard], U, S) ->
-    From = jlib:make_jid("", S, mod_shared_roster),
+    From = jlib:make_jid("", S, ?MODULE),
     To = jlib:make_jid(U, S, ""),
     IQ = {iq,"",get,"vcard-temp","",
 	  {xmlelement,"vCard",[{"xmlns","vcard-temp"}],[]}},
@@ -619,14 +619,14 @@ add_user_to_group(Host, US, Group) ->
     {LUser, LServer} = US,
     case ejabberd_regexp:run(LUser, "^@.+@$") of
 	match ->
-	    GroupOpts = mod_shared_roster:get_group_opts(Host, Group),
+	    GroupOpts = ?MODULE:get_group_opts(Host, Group),
 	    MoreGroupOpts =
 		case LUser of
 		    "@all@" -> [{all_users, true}];
 		    "@online@" -> [{online_users, true}];
 		    _ -> []
 		end,
-            mod_shared_roster:set_group_opts(
+            ?MODULE:set_group_opts(
 	      Host, Group,
 	      GroupOpts ++ MoreGroupOpts);
 	nomatch ->
@@ -652,7 +652,7 @@ remove_user_from_group(Host, US, Group) ->
     {LUser, LServer} = US,
     case ejabberd_regexp:run(LUser, "^@.+@$") of
 	match ->
-	    GroupOpts = mod_shared_roster:get_group_opts(Host, Group),
+	    GroupOpts = ?MODULE:get_group_opts(Host, Group),
 	    NewGroupOpts =
 		case LUser of
 		    "@all@" ->
@@ -660,7 +660,7 @@ remove_user_from_group(Host, US, Group) ->
 		    "@online@" ->
 			lists:filter(fun(X) -> X/={online_users,true} end, GroupOpts)
 		end,
-	    mod_shared_roster:set_group_opts(Host, Group, NewGroupOpts);
+	    ?MODULE:set_group_opts(Host, Group, NewGroupOpts);
 	nomatch ->
 	    R = #sr_user{us = US, group_host = GroupHost},
 	    F = fun() ->
@@ -876,7 +876,7 @@ webadmin_page(Acc, _, _) -> Acc.
 
 list_shared_roster_groups(Host, Query, Lang) ->
     Res = list_sr_groups_parse_query(Host, Query),
-    SRGroups = mod_shared_roster:list_groups(Host),
+    SRGroups = ?MODULE:list_groups(Host),
     FGroups =
 	?XAE("table", [],
 	     [?XE("tbody",
@@ -925,19 +925,19 @@ list_sr_groups_parse_query(Host, Query) ->
 list_sr_groups_parse_addnew(Host, Query) ->
     case lists:keysearch("namenew", 1, Query) of
 	{value, {_, Group}} when Group /= "" ->
-	    mod_shared_roster:create_group(Host, Group),
+	    ?MODULE:create_group(Host, Group),
 	    ok;
 	_ ->
 	    error
     end.
 
 list_sr_groups_parse_delete(Host, Query) ->
-    SRGroups = mod_shared_roster:list_groups(Host),
+    SRGroups = ?MODULE:list_groups(Host),
     lists:foreach(
       fun(Group) ->
 	      case lists:member({"selected", Group}, Query) of
 		  true ->
-		      mod_shared_roster:delete_group(Host, Group);
+		      ?MODULE:delete_group(Host, Group);
 		  _ ->
 		      ok
 	      end
@@ -947,14 +947,14 @@ list_sr_groups_parse_delete(Host, Query) ->
 
 shared_roster_group(Host, Group, Query, Lang) ->
     Res = shared_roster_group_parse_query(Host, Group, Query),
-    GroupOpts = mod_shared_roster:get_group_opts(Host, Group),
+    GroupOpts = ?MODULE:get_group_opts(Host, Group),
     Name = get_opt(GroupOpts, name, ""),
     Description = get_opt(GroupOpts, description, ""),
     AllUsers = get_opt(GroupOpts, all_users, false),
     OnlineUsers = get_opt(GroupOpts, online_users, false),
     %%Disabled = false,
     DisplayedGroups = get_opt(GroupOpts, displayed_groups, []),
-    Members = mod_shared_roster:get_group_explicit_users(Host, Group),
+    Members = ?MODULE:get_group_explicit_users(Host, Group),
     FMembers =
 	if
 	    AllUsers ->
@@ -1042,7 +1042,7 @@ shared_roster_group_parse_query(Host, Group, Query) ->
 		    true -> [{displayed_groups, DispGroups}]
 		end,
 
-	    OldMembers = mod_shared_roster:get_group_explicit_users(
+	    OldMembers = ?MODULE:get_group_explicit_users(
 			   Host, Group),
 	    SJIDs = string:tokens(SMembers, ", \r\n"),
 	    NewMembers =
@@ -1074,7 +1074,7 @@ shared_roster_group_parse_query(Host, Group, Query) ->
 		    false -> []
 		end,
 
-	    mod_shared_roster:set_group_opts(
+	    ?MODULE:set_group_opts(
 	      Host, Group,
 	      NameOpt ++ DispGroupsOpt ++ DescriptionOpt ++ AllUsersOpt ++ OnlineUsersOpt),
 
@@ -1085,12 +1085,12 @@ shared_roster_group_parse_query(Host, Group, Query) ->
 		    RemovedMembers = OldMembers -- NewMembers,
 		    lists:foreach(
 		      fun(US) ->
-			      mod_shared_roster:remove_user_from_group(
+			      ?MODULE:remove_user_from_group(
 				Host, US, Group)
 		      end, RemovedMembers),
 		    lists:foreach(
 		      fun(US) ->
-			      mod_shared_roster:add_user_to_group(
+			      ?MODULE:add_user_to_group(
 				Host, US, Group)
 		      end, AddedMembers),
 		    ok
